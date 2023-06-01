@@ -1,0 +1,27 @@
+import { AppwriteException } from "appwrite";
+import { ClassValue, clsx } from "clsx";
+import { twMerge } from "tailwind-merge";
+
+export function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs));
+}
+
+export function isUserInvalidCreditanilsException(
+  exception: AppwriteException
+) {
+  const expectedType = "user_invalid_credentials";
+
+  return exception.type === expectedType;
+}
+
+export function isUserAlreadyExistsException(exception: AppwriteException) {
+  const expectedType = "user_already_exists";
+
+  return exception.type === expectedType;
+}
+
+export const ErrorReasons = {
+  incorrectEmailOrPassword: "Email or password is incorrect",
+  emailAlreadyExists:
+    "There is already a user with the same email. Please choose another one",
+} as const;

@@ -67,7 +67,7 @@ export async function action({ request }: ActionFunctionArgs) {
 export function useTypedActionData() {
   const submission = useActionData();
 
-  return submission as Awaited<ReturnType<typeof action>>;
+  return submission as Awaited<ReturnType<typeof action>> | undefined;
 }
 
 export function SignUpPage() {

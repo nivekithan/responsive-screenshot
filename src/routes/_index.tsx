@@ -1,4 +1,5 @@
 import { NewSiteForm } from "@/components/newSiteForm";
+import { generateScreenshotFn } from "@/lib/appwrite";
 import { getCurrentUser } from "@/lib/auth";
 import { useForm } from "@conform-to/react";
 import { parse } from "@conform-to/zod";
@@ -27,23 +28,25 @@ export async function action({ request }: ActionFunctionArgs) {
   const submission = parse(formdata, { schema: NewSiteFormSchema });
 
   if (!submission.value || submission.intent !== "submit") {
-    return submission;
+    return { submission };
   }
 
   const url = submission.value.link;
+  const screenshotUrl = await generateScreenshotFn(url);
 
-  return submission;
+  return { data: screenshotUrl, submission };
 }
 
 function useTypedActionData() {
   const actionData = useActionData();
 
-  return actionData as Awaited<ReturnType<typeof action>>;
+  return actionData as Awaited<ReturnType<typeof action>> | undefined;
 }
+
 export function RootIndexPage() {
-  const lastSubmission = useTypedActionData();
+  const actionData = useTypedActionData();
   const [form, { link }] = useForm({
-    lastSubmission,
+    lastSubmission: actionData?.submission,
     onValidate({ formData }) {
       return parse(formData, { schema: NewSiteFormSchema });
     },
@@ -58,6 +61,7 @@ export function RootIndexPage() {
         error={link.error}
         formProps={form.props}
       />
+      <p>URL: {actionData?.data}</p>
     </main>
   );
 }

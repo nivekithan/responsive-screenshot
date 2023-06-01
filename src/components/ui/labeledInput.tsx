@@ -1,4 +1,4 @@
-import React from "react";
+import * as React from "react";
 import { Input } from "./input";
 import { Label } from "./label";
 
@@ -22,7 +22,7 @@ export function LabeledInput({
   error,
 }: LabeledInputArgs) {
   return (
-    <div className="flex flex-col gap-y-1.5">
+    <div className="flex flex-col gap-y-2.5">
       <Label htmlFor={id}>{label}</Label>
       <Input
         placeholder={placeholder}

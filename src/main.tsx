@@ -6,12 +6,22 @@ import * as rootPage from "./root";
 import * as loginPage from "./routes/login";
 import * as signUpPage from "./routes/signUp";
 import * as logoutPage from "./routes/logout";
+import * as rootIndexPage from "./routes/_index";
 
 const router = createBrowserRouter([
   {
     path: "/",
     element: <rootPage.RouteLayout />,
     loader: rootPage.loader,
+    children: [
+      {
+        path: "/",
+        index: true,
+        action: rootIndexPage.action,
+        element: <rootIndexPage.RootIndexPage />,
+        loader: rootIndexPage.loader,
+      },
+    ],
   },
   {
     path: "/login",

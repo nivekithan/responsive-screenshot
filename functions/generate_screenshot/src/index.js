@@ -2,12 +2,17 @@
 const { z } = require("zod");
 const { Client, TakeOptions } = require("screenshotone-api-sdk");
 
-const payloadSchema = z.object({ url: z.string() });
+const payloadSchema = z.object({
+  url: z.string(),
+  version: z.string(),
+});
 
 const variablesScheam = z.object({
   SCREENSHOT_ACCESS_KEY: z.string(),
   SCREENSHOT_SIGNING_KEY: z.string(),
 });
+
+const MONTH_IN_SECONDS = 2592000;
 
 module.exports = async function (req, res) {
   try {
@@ -23,7 +28,7 @@ module.exports = async function (req, res) {
     }
 
     const variables = variablesParseRes.data;
-    const { url } = payloadParseRes.data;
+    const { url, version } = payloadParseRes.data;
 
     const screenshotClient = new Client(
       variables.SCREENSHOT_ACCESS_KEY,
@@ -32,7 +37,10 @@ module.exports = async function (req, res) {
 
     const options = TakeOptions.url(url)
       .fullPage(true)
-      .viewportDevice("iphone_13_pro_max");
+      .viewportDevice("iphone_13_pro_max")
+      .cache(true)
+      .cacheTtl(MONTH_IN_SECONDS)
+      .cacheKey(version);
 
     const screenshotUrl = screenshotClient.generateSignedTakeURL(options);
 

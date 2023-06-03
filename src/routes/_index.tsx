@@ -1,9 +1,19 @@
 import { NewSiteForm } from "@/components/newSiteForm";
+import { ScreenshotImageLink } from "@/components/screenshotImageLink";
+import { Heading } from "@/components/ui/heading";
 import { generateScreenshotFn } from "@/lib/appwrite";
 import { getCurrentUser } from "@/lib/auth";
+import { getPages, storePage } from "@/lib/storage";
 import { useForm } from "@conform-to/react";
 import { parse } from "@conform-to/zod";
-import { ActionFunctionArgs, redirect, useActionData } from "react-router-dom";
+import { AppwriteException } from "appwrite";
+import * as React from "react";
+import {
+  ActionFunctionArgs,
+  redirect,
+  useActionData,
+  useLoaderData,
+} from "react-router-dom";
 import { z } from "zod";
 
 export async function loader() {
@@ -13,14 +23,26 @@ export async function loader() {
     throw redirect("/login");
   }
 
-  return null;
+  const pages = await getPages();
+
+  console.log(pages);
+  if (pages instanceof AppwriteException) {
+    //TODO: Add proper error handling
+    return null;
+  }
+
+  return pages;
 }
 
 const NewSiteFormSchema = z.object({
-  link: z
+  url: z
     .string()
     .nonempty("It is required to provide a url")
     .url("Provide valid url"),
+  name: z
+    .string()
+    .nonempty("It is required to provide a name")
+    .max(250, "Maximum length of name can be only 250"),
 });
 
 export async function action({ request }: ActionFunctionArgs) {
@@ -31,10 +53,28 @@ export async function action({ request }: ActionFunctionArgs) {
     return { submission };
   }
 
-  const url = submission.value.link;
+  const url = submission.value.url;
+  const name = submission.value.name;
   const screenshotUrl = await generateScreenshotFn(url);
 
+  const storePageRes = await storePage({
+    name,
+    url: screenshotUrl,
+    originalUrl: url,
+  });
+
+  if (storePageRes instanceof AppwriteException) {
+    submission.error.link = storePageRes.message;
+    return { submission };
+  }
+
   return { data: screenshotUrl, submission };
+}
+
+function useTypedLoaderData() {
+  const loaderData = useLoaderData();
+
+  return loaderData as Awaited<ReturnType<typeof loader>>;
 }
 
 function useTypedActionData() {
@@ -44,24 +84,48 @@ function useTypedActionData() {
 }
 
 export function RootIndexPage() {
+  const loaderData = useTypedLoaderData();
   const actionData = useTypedActionData();
-  const [form, { link }] = useForm({
+
+  const [form, { url, name }] = useForm({
     lastSubmission: actionData?.submission,
     onValidate({ formData }) {
       return parse(formData, { schema: NewSiteFormSchema });
     },
   });
 
-  return (
-    <main className="grid place-items-center py-56">
-      <NewSiteForm
-        id="new-site"
-        label="Url of site:"
-        name={link.name}
-        error={link.error}
-        formProps={form.props}
-      />
-      <p>URL: {actionData?.data}</p>
+  const isPagesEmpty = loaderData === null || loaderData.length === 0;
+
+  return isPagesEmpty ? (
+    <CreateNewPage
+      formComponent={
+        <NewSiteForm formProps={form.props} nameConfig={name} urlConfig={url} />
+      }
+    />
+  ) : (
+    <main className="px-6 py-3">
+      <Heading className="pb-8 text-xl">All Pages</Heading>
+      <div className="flex gap-x-4 flex-wrap gap-y-4">
+        {loaderData.map(({ url, id, name, originalUrl }) => {
+          return (
+            <ScreenshotImageLink
+              url={url}
+              key={id}
+              name={name}
+              originalUrl={originalUrl}
+              id={id}
+            />
+          );
+        })}
+      </div>
     </main>
   );
+}
+
+type CreatePageProps = {
+  formComponent: React.ReactNode;
+};
+
+function CreateNewPage({ formComponent }: CreatePageProps) {
+  return <main className="grid place-items-center py-48">{formComponent}</main>;
 }

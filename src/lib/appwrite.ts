@@ -1,4 +1,4 @@
-import { Account, Client, Functions } from "appwrite";
+import { Account, Client, Databases, Functions } from "appwrite";
 import { z } from "zod";
 
 const client = new Client()
@@ -7,12 +7,14 @@ const client = new Client()
 
 export const account = new Account(client);
 
+export const databases = new Databases(client);
+
 const functions = new Functions(client);
 
 export async function generateScreenshotFn(url: string) {
   const res = await functions.createExecution(
     "647895cd6af709744cbe",
-    JSON.stringify({ url })
+    JSON.stringify({ url, version: `1` })
   );
 
   const response = z

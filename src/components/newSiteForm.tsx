@@ -9,22 +9,19 @@ import {
 } from "./ui/card";
 import { LabeledInput } from "./ui/labeledInput";
 import { Button } from "./ui/button";
+import { FieldConfig } from "@conform-to/react";
 
 export type NewSiteFormProps = {
-  name: string;
-  label: string;
-  id: string;
-  error?: string;
+  urlConfig: FieldConfig<string>;
+  nameConfig: FieldConfig<string>;
 
   formProps: FormProps;
 };
 
 export function NewSiteForm({
-  id,
-  label,
-  name,
   formProps,
-  error,
+  urlConfig,
+  nameConfig,
 }: NewSiteFormProps) {
   return (
     <Card>
@@ -37,12 +34,18 @@ export function NewSiteForm({
       <Form method="post" {...formProps}>
         <CardContent>
           <LabeledInput
-            id={id}
-            label={label}
-            name={name}
+            label="Name:"
+            id="new-page-name"
+            {...nameConfig}
+            placeholder="Landing page"
+            type="text"
+          />
+          <LabeledInput
+            label="Url of page:"
+            id="new-page-url"
+            {...urlConfig}
             placeholder="https://example.com"
             type="url"
-            error={error}
           />
         </CardContent>
         <CardFooter>

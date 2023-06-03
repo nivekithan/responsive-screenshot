@@ -38,7 +38,7 @@ export function AuthForm({
         <SignUpCardDescription />
       )}
       <Form method="post" {...formProps}>
-        <CardContent className="flex flex-col gap-y-6">
+        <CardContent>
           <LabeledInput
             id="auth-email"
             label="Email:"

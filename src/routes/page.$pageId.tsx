@@ -3,7 +3,7 @@ import {
   updateApprovalStatusSchema,
 } from "@/components/screeshotFeedbackForm";
 import { getCurrentUser } from "@/lib/auth";
-import { setApprovalStatus } from "@/lib/storage";
+import { getApprovalStatus, setApprovalStatus } from "@/lib/storage";
 import { getPage } from "@/lib/storage";
 import { parse } from "@conform-to/zod";
 import {
@@ -26,14 +26,17 @@ export async function loader({ params }: LoaderFunctionArgs) {
   const parsedParams = ParamsSchema.parse(params);
   const pageId = parsedParams.pageId;
 
-  const page = await getPage({ id: pageId });
+  const pagePromise = getPage({ id: pageId });
+  const statusPromise = getApprovalStatus({ pageId });
+
+  const [page, status] = await Promise.all([pagePromise, statusPromise]);
 
   if (!page.valid) {
     // TODO: DO Error handling
     throw redirect("/");
   }
 
-  return page.page;
+  return { page: page.page, status: status };
 }
 
 export async function action({ request, params }: ActionFunctionArgs) {
@@ -67,7 +70,7 @@ function useTypedLoader() {
 }
 
 export function ScreenshotPage() {
-  const page = useTypedLoader();
+  const { page, status } = useTypedLoader();
 
   return (
     <main className="flex">
@@ -76,7 +79,7 @@ export function ScreenshotPage() {
       </div>
       <div className="w-1/3 h-screen-minus-nav relative border-l px-2 overflow-y-auto">
         <div className="h-screen-minus-nav-2 overflow-y-auto"></div>
-        <ScreenshotFeedbackForm />
+        <ScreenshotFeedbackForm defaultStatus={status?.status} />
       </div>
     </main>
   );

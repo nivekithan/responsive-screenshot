@@ -17,7 +17,12 @@ export const updateApprovalStatusSchema = z.object({
   status: z.union([z.literal("APPROVED"), z.literal("DISAPPROVED")]),
 });
 
-export function ScreenshotFeedbackForm() {
+export type ScreenshotFeedbackFormProps = {
+  defaultStatus?: z.infer<typeof updateApprovalStatusSchema>["status"];
+};
+export function ScreenshotFeedbackForm({
+  defaultStatus,
+}: ScreenshotFeedbackFormProps) {
   const commentFetcher = useFetcher();
   const approvalStatusFetcher = useFetcher();
   const approvalStatusFormRef = useRef<HTMLFormElement | null>(null);
@@ -63,7 +68,7 @@ export function ScreenshotFeedbackForm() {
             approvalStatusFetcher.submit(approvalStatusFormRef.current);
           }}
           {...conform.select(status)}
-          defaultValue={undefined}
+          defaultValue={defaultStatus}
         >
           <SelectTrigger>
             <SelectValue placeholder="Status" />

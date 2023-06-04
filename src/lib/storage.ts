@@ -88,25 +88,30 @@ export async function storePage({ name, url, originalUrl }: StorePageProps) {
 
 export type ApprovalStatusModel = {
   pageId: string;
-  status: "APPROVED" | "DISAPPROVED" | "WAITING";
+  status: "APPROVED" | "DISAPPROVED";
+  id: string;
 };
 
-export type GetApprovalStatusListArgs = {
+export type GetApprovalStatusArgs = {
   pageId: string;
 };
 
-export async function getApprovalStatusList({
+export async function getApprovalStatus({
   pageId,
-}: GetApprovalStatusListArgs) {
+}: GetApprovalStatusArgs): Promise<ApprovalStatusModel | null> {
   const statusList = await databases.listDocuments(
     DATABASE_ID,
     collections.PAGE_APPROVAL_STATUS,
     [Query.equal("pageId", pageId)]
   );
 
-  console.log(statusList);
+  if (statusList.documents.length === 0) {
+    return null;
+  }
 
-  return statusList;
+  const doc = statusList.documents[0];
+
+  return { pageId: doc.pageId, id: doc.$id, status: doc.status };
 }
 
 export type StoreApprovalStatusArgs = {
@@ -119,10 +124,10 @@ export async function setApprovalStatus({
   approvalStatus,
 }: StoreApprovalStatusArgs) {
   // TODO: Proper error handling
-  const statusList = await getApprovalStatusList({ pageId });
-  const isDocsEmpty = statusList.documents.length === 0;
+  const status = await getApprovalStatus({ pageId });
+  const isStatusPresent = status === null;
 
-  if (isDocsEmpty) {
+  if (isStatusPresent) {
     const createdStatus = await databases.createDocument(
       DATABASE_ID,
       collections.PAGE_APPROVAL_STATUS,
@@ -131,7 +136,7 @@ export async function setApprovalStatus({
     );
     return createdStatus;
   } else {
-    const id = statusList.documents[0].$id;
+    const id = status.id;
 
     const updatedStatus = await databases.updateDocument(
       DATABASE_ID,

@@ -20,8 +20,15 @@ export function isUserAlreadyExistsException(exception: AppwriteException) {
   return exception.type === expectedType;
 }
 
+export function isDocumentNotFoundException(exception: AppwriteException) {
+  const expectedType = "document_not_found";
+
+  return exception.type === expectedType;
+}
+
 export const ErrorReasons = {
   incorrectEmailOrPassword: "Email or password is incorrect",
   emailAlreadyExists:
     "There is already a user with the same email. Please choose another one",
+  pageNotFound: "There is no page with that id",
 } as const;

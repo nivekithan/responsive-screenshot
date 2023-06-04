@@ -25,7 +25,6 @@ export async function loader() {
 
   const pages = await getPages();
 
-  console.log(pages);
   if (pages instanceof AppwriteException) {
     //TODO: Add proper error handling
     return null;

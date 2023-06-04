@@ -11,6 +11,11 @@ module.exports = {
       },
     },
     extend: {
+      spacing: {
+        // TODO: Improve naming for these values
+        "screen-minus-nav": "calc(100vh - 4rem)",
+        "screen-minus-nav-2": "calc(100vh - 8rem)"
+      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",

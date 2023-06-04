@@ -7,6 +7,7 @@ import * as loginPage from "./routes/login";
 import * as signUpPage from "./routes/signUp";
 import * as logoutPage from "./routes/logout";
 import * as rootIndexPage from "./routes/_index";
+import * as screenshotPage from "./routes/page.$pageId";
 
 const router = createBrowserRouter([
   {
@@ -20,6 +21,12 @@ const router = createBrowserRouter([
         action: rootIndexPage.action,
         element: <rootIndexPage.RootIndexPage />,
         loader: rootIndexPage.loader,
+      },
+      {
+        path: "/page/:pageId",
+        action: screenshotPage.action,
+        loader: screenshotPage.loader,
+        element: <screenshotPage.ScreenshotPage />,
       },
     ],
   },

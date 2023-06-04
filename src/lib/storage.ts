@@ -5,6 +5,7 @@ import { ErrorReasons, isDocumentNotFoundException } from "./utils";
 const DATABASE_ID = "dev";
 const collections = {
   PAGES: "647b0d9310b4ac4f8256",
+  PAGE_APPROVAL_STATUS: "647c71d2cac511ce8e9b",
 };
 
 export type PageModel = {
@@ -83,4 +84,62 @@ export async function storePage({ name, url, originalUrl }: StorePageProps) {
     .catch((err: AppwriteException) => err);
 
   return insertedPage;
+}
+
+export type ApprovalStatusModel = {
+  pageId: string;
+  status: "APPROVED" | "DISAPPROVED" | "WAITING";
+};
+
+export type GetApprovalStatusListArgs = {
+  pageId: string;
+};
+
+export async function getApprovalStatusList({
+  pageId,
+}: GetApprovalStatusListArgs) {
+  const statusList = await databases.listDocuments(
+    DATABASE_ID,
+    collections.PAGE_APPROVAL_STATUS,
+    [Query.equal("pageId", pageId)]
+  );
+
+  console.log(statusList);
+
+  return statusList;
+}
+
+export type StoreApprovalStatusArgs = {
+  pageId: string;
+  approvalStatus: ApprovalStatusModel["status"];
+};
+
+export async function setApprovalStatus({
+  pageId,
+  approvalStatus,
+}: StoreApprovalStatusArgs) {
+  // TODO: Proper error handling
+  const statusList = await getApprovalStatusList({ pageId });
+  const isDocsEmpty = statusList.documents.length === 0;
+
+  if (isDocsEmpty) {
+    const createdStatus = await databases.createDocument(
+      DATABASE_ID,
+      collections.PAGE_APPROVAL_STATUS,
+      ID.unique(),
+      { pageId, status: approvalStatus }
+    );
+    return createdStatus;
+  } else {
+    const id = statusList.documents[0].$id;
+
+    const updatedStatus = await databases.updateDocument(
+      DATABASE_ID,
+      collections.PAGE_APPROVAL_STATUS,
+      id,
+      { status: approvalStatus }
+    );
+
+    return updatedStatus;
+  }
 }

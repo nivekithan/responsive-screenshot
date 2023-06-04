@@ -1,6 +1,11 @@
-import { ScreenshotFeedbackForm } from "@/components/screeshotFeedbackForm";
+import {
+  ScreenshotFeedbackForm,
+  updateApprovalStatusSchema,
+} from "@/components/screeshotFeedbackForm";
 import { getCurrentUser } from "@/lib/auth";
+import { setApprovalStatus } from "@/lib/storage";
 import { getPage } from "@/lib/storage";
+import { parse } from "@conform-to/zod";
 import {
   ActionFunctionArgs,
   LoaderFunctionArgs,
@@ -31,9 +36,9 @@ export async function loader({ params }: LoaderFunctionArgs) {
   return page.page;
 }
 
-export async function action({ request }: ActionFunctionArgs) {
-  console.log("Running action");
+export async function action({ request, params }: ActionFunctionArgs) {
   const user = await getCurrentUser();
+  const parsedParams = ParamsSchema.parse(params);
 
   if (!user.valid) {
     throw redirect("/login", { status: 400 });
@@ -41,7 +46,16 @@ export async function action({ request }: ActionFunctionArgs) {
 
   const formData = await request.formData();
 
-  console.log(formData);
+  const submission = parse(formData, { schema: updateApprovalStatusSchema });
+
+  if (!submission.value || submission.intent !== "submit") {
+    return submission;
+  }
+
+  await setApprovalStatus({
+    pageId: parsedParams.pageId,
+    approvalStatus: submission.value.status,
+  });
 
   return null;
 }

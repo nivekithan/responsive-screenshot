@@ -9,11 +9,27 @@ import {
   SelectTrigger,
   SelectValue,
 } from "./ui/select";
+import { conform, useForm } from "@conform-to/react";
+import { z } from "zod";
+import { parse } from "@conform-to/zod";
+
+export const updateApprovalStatusSchema = z.object({
+  status: z.union([z.literal("APPROVED"), z.literal("DISAPPROVED")]),
+});
 
 export function ScreenshotFeedbackForm() {
   const commentFetcher = useFetcher();
   const approvalStatusFetcher = useFetcher();
   const approvalStatusFormRef = useRef<HTMLFormElement | null>(null);
+
+  const [updateApporvalStatusForm, { status }] = useForm({
+    lastSubmission: approvalStatusFetcher.data,
+    onValidate({ formData }) {
+      return parse(formData, { schema: updateApprovalStatusSchema });
+    },
+  });
+
+  const approvalStatusFormProps = updateApporvalStatusForm.props;
 
   return (
     <div className="h-16 flex items-center justify-center gap-x-2">
@@ -35,20 +51,26 @@ export function ScreenshotFeedbackForm() {
       <approvalStatusFetcher.Form
         method="post"
         className="flex w-32"
-        ref={approvalStatusFormRef}
+        {...approvalStatusFormProps}
+        ref={(ref) => {
+          approvalStatusFormRef.current = ref;
+          // @ts-expect-error
+          approvalStatusFormProps.ref.current = ref;
+        }}
       >
         <Select
-          name="apporval-status"
           onValueChange={() => {
             approvalStatusFetcher.submit(approvalStatusFormRef.current);
           }}
+          {...conform.select(status)}
+          defaultValue={undefined}
         >
           <SelectTrigger>
             <SelectValue placeholder="Status" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="approve">Approve</SelectItem>
-            <SelectItem value="disapprove">Disapprove</SelectItem>
+            <SelectItem value="APPROVED">Approve</SelectItem>
+            <SelectItem value="DISAPPROVED">Disapprove</SelectItem>
           </SelectContent>
         </Select>
       </approvalStatusFetcher.Form>

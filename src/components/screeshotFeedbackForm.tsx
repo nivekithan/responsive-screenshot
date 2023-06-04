@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import { useFetcher } from "react-router-dom";
 import { Input } from "./ui/input";
 import { Button } from "./ui/button";
@@ -17,13 +17,20 @@ export const updateApprovalStatusSchema = z.object({
   status: z.union([z.literal("APPROVED"), z.literal("DISAPPROVED")]),
 });
 
+export const addCommentSchema = z.object({
+  comment: z.string(),
+});
+
 export type ScreenshotFeedbackFormProps = {
   defaultStatus?: z.infer<typeof updateApprovalStatusSchema>["status"];
 };
+
 export function ScreenshotFeedbackForm({
   defaultStatus,
 }: ScreenshotFeedbackFormProps) {
   const commentFetcher = useFetcher();
+  const commentFormRef = useRef<HTMLFormElement | null>();
+
   const approvalStatusFetcher = useFetcher();
   const approvalStatusFormRef = useRef<HTMLFormElement | null>(null);
 
@@ -34,20 +41,43 @@ export function ScreenshotFeedbackForm({
     },
   });
 
+  const [addCommentForm, { comment }] = useForm({
+    lastSubmission: commentFetcher.data,
+    onValidate({ formData }) {
+      return parse(formData, { schema: addCommentSchema });
+    },
+  });
+
+  const isAddingComment = commentFetcher.state === "submitting";
+
+  useEffect(() => {
+    if (!isAddingComment) {
+      commentFormRef.current?.reset();
+    }
+  }, [isAddingComment]);
+
   const approvalStatusFormProps = updateApporvalStatusForm.props;
+  const addCommentFormProps = addCommentForm.props;
 
   return (
     <div className="h-16 flex items-center justify-center gap-x-2">
       <commentFetcher.Form
         method="post"
-        replace
         className="flex items-center justify-center gap-x-2 flex-1 "
+        {...addCommentFormProps}
+        ref={(e) => {
+          commentFormRef.current = e;
+
+          // @ts-ignore
+          addCommentFormProps.ref.current = e;
+        }}
       >
         <Input
           type="text"
           className="flex-grow"
-          name="comment"
           placeholder="Comment to send..."
+          {...conform.input(comment)}
+          defaultValue={undefined}
         />
         <Button type="submit" variant="secondary">
           Send

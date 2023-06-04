@@ -1,9 +1,14 @@
 import {
   ScreenshotFeedbackForm,
+  addCommentSchema,
   updateApprovalStatusSchema,
 } from "@/components/screeshotFeedbackForm";
 import { getCurrentUser } from "@/lib/auth";
-import { getApprovalStatus, setApprovalStatus } from "@/lib/storage";
+import {
+  getApprovalStatus,
+  setApprovalStatus,
+  storeComment,
+} from "@/lib/storage";
 import { getPage } from "@/lib/storage";
 import { parse } from "@conform-to/zod";
 import {
@@ -49,18 +54,27 @@ export async function action({ request, params }: ActionFunctionArgs) {
 
   const formData = await request.formData();
 
-  const submission = parse(formData, { schema: updateApprovalStatusSchema });
+  const submission = parse(formData, {
+    schema: z.union([updateApprovalStatusSchema, addCommentSchema]),
+  });
 
   if (!submission.value || submission.intent !== "submit") {
     return submission;
   }
 
-  await setApprovalStatus({
-    pageId: parsedParams.pageId,
-    approvalStatus: submission.value.status,
-  });
-
-  return null;
+  if ("status" in submission.value) {
+    await setApprovalStatus({
+      pageId: parsedParams.pageId,
+      approvalStatus: submission.value.status,
+    });
+    return submission;
+  } else {
+    await storeComment({
+      pageId: parsedParams.pageId,
+      comment: submission.value.comment,
+    });
+    return submission;
+  }
 }
 
 function useTypedLoader() {

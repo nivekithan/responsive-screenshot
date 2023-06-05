@@ -1,3 +1,4 @@
+import { RealTimeComments } from "@/components/realtimeComments";
 import {
   ScreenshotFeedbackForm,
   addCommentSchema,
@@ -11,6 +12,7 @@ import {
 } from "@/lib/storage";
 import { getPage } from "@/lib/storage";
 import { parse } from "@conform-to/zod";
+import { useCallback, useRef } from "react";
 import {
   ActionFunctionArgs,
   LoaderFunctionArgs,
@@ -85,6 +87,15 @@ function useTypedLoader() {
 
 export function ScreenshotPage() {
   const { page, status } = useTypedLoader();
+  const pageCommentContainer = useRef<HTMLDivElement | null>(null);
+
+  const scrollCommentToBottom = useCallback(() => {
+    if (pageCommentContainer.current) {
+      pageCommentContainer.current.scrollTo({
+        top: pageCommentContainer.current.scrollHeight,
+      });
+    }
+  }, []);
 
   return (
     <main className="flex">
@@ -92,7 +103,15 @@ export function ScreenshotPage() {
         {/* <img alt={`${page.name} of ${page.url}`} src={page.url} /> */}
       </div>
       <div className="w-1/3 h-screen-minus-nav relative border-l px-2 overflow-y-auto">
-        <div className="h-screen-minus-nav-2 overflow-y-auto"></div>
+        <div
+          className="h-screen-minus-nav-2 overflow-y-auto"
+          ref={pageCommentContainer}
+        >
+          <RealTimeComments
+            pageId={page.id}
+            scrollToBottom={scrollCommentToBottom}
+          />
+        </div>
         <ScreenshotFeedbackForm defaultStatus={status?.status} />
       </div>
     </main>

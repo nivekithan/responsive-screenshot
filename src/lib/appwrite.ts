@@ -23,3 +23,5 @@ export async function generateScreenshotFn(url: string) {
 
   return response.screenshotUrl;
 }
+
+export const subscribe = client.subscribe.bind(client);

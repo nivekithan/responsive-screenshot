@@ -1,9 +1,10 @@
-import { AppwriteException, ID, Models, Query } from "appwrite";
+import { AppwriteException, ID, Query } from "appwrite";
 import { databases } from "./appwrite";
 import { ErrorReasons, isDocumentNotFoundException } from "./utils";
+import { convertPageCommentModel } from "./convert";
 
-const DATABASE_ID = "dev";
-const collections = {
+export const DATABASE_ID = "dev";
+export const collections = {
   PAGES: "647b0d9310b4ac4f8256",
   PAGE_APPROVAL_STATUS: "647c71d2cac511ce8e9b",
   PAGE_COMMENTS: "647cbdc2c63d3a217083",
@@ -163,5 +164,31 @@ export async function storeComment({ comment, pageId }: StoreCommentArgs) {
     })
     .catch((err: AppwriteException) => err);
 
-  return insertedDocument;
+  if (insertedDocument instanceof AppwriteException) {
+    return insertedDocument;
+  }
+
+  return convertPageCommentModel(insertedDocument);
+}
+
+export type GetPageCommentsArgs = {
+  pageId: string;
+};
+
+export async function getPageComments({ pageId }: GetPageCommentsArgs) {
+  const pageCommentsList = await databases.listDocuments(
+    DATABASE_ID,
+    collections.PAGE_COMMENTS,
+    [
+      Query.equal("pageId", pageId),
+      Query.orderDesc("$createdAt"),
+      Query.limit(50),
+    ]
+  );
+
+  const commentModelList = pageCommentsList.documents
+    .map(convertPageCommentModel)
+    .reverse();
+
+  return commentModelList;
 }

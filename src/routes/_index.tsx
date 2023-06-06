@@ -45,6 +45,13 @@ const NewSiteFormSchema = z.object({
 });
 
 export async function action({ request }: ActionFunctionArgs) {
+  const userRes = await getCurrentUser();
+
+  if (!userRes.valid) {
+    throw redirect("/login");
+  }
+  const user = userRes.user;
+
   const formdata = await request.formData();
   const submission = parse(formdata, { schema: NewSiteFormSchema });
 
@@ -54,12 +61,16 @@ export async function action({ request }: ActionFunctionArgs) {
 
   const url = submission.value.url;
   const name = submission.value.name;
-  const screenshotUrl = await generateScreenshotFn(url);
+  const screenshotUrl = await generateScreenshotFn(
+    url,
+    `${new Date().getTime()}`
+  );
 
   const storePageRes = await storePage({
     name,
     url: screenshotUrl,
     originalUrl: url,
+    userId: user.$id,
   });
 
   if (storePageRes instanceof AppwriteException) {

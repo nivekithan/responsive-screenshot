@@ -1,4 +1,4 @@
-import { AppwriteException, ID, Query } from "appwrite";
+import { AppwriteException, ID, Permission, Query, Role } from "appwrite";
 import { databases } from "./appwrite";
 import { ErrorReasons, isDocumentNotFoundException } from "./utils";
 import {
@@ -79,15 +79,31 @@ export type StorePageProps = {
   url: string;
   name: string;
   originalUrl: string;
+  userId: string;
 };
-export async function storePage({ name, url, originalUrl }: StorePageProps) {
+export async function storePage({
+  name,
+  url,
+  originalUrl,
+  userId,
+}: StorePageProps) {
   const insertedPage = await databases
 
-    .createDocument(DATABASE_ID, collections.PAGES, ID.unique(), {
-      url,
-      name,
-      originalUrl,
-    })
+    .createDocument(
+      DATABASE_ID,
+      collections.PAGES,
+      ID.unique(),
+      {
+        url,
+        name,
+        originalUrl,
+      },
+      [
+        Permission.read(Role.user(userId)),
+        Permission.update(Role.user(userId)),
+        Permission.delete(Role.user(userId)),
+      ]
+    )
     .catch((err: AppwriteException) => err);
 
   return insertedPage;

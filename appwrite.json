@@ -1,22 +1,37 @@
 {
-  "projectId": "pdf",
-  "projectName": "pdf toolkit",
-  "functions": [
-    {
-      "$id": "647895cd6af709744cbe",
-      "name": "generate_screenshot",
-      "runtime": "node-16.0",
-      "path": "functions/generate_screenshot",
-      "entrypoint": "src/index.js",
-      "ignore": [
-        "node_modules",
-        "./functions/generate_screenshot/node_modules",
-        ".npm"
-      ],
-      "execute": [],
-      "events": [],
-      "schedule": "",
-      "timeout": 15
-    }
-  ]
+    "projectId": "pdf",
+    "projectName": "pdf toolkit",
+    "functions": [
+        {
+            "$id": "647895cd6af709744cbe",
+            "name": "generate_screenshot",
+            "runtime": "node-16.0",
+            "path": "functions/generate_screenshot",
+            "entrypoint": "src/index.js",
+            "ignore": [
+                "node_modules",
+                "./functions/generate_screenshot/node_modules",
+                ".npm"
+            ],
+            "execute": [],
+            "events": [],
+            "schedule": "",
+            "timeout": 15
+        },
+        {
+            "$id": "647f57bdf1bb2d3157b6",
+            "name": "secure_get_page",
+            "runtime": "node-16.0",
+            "path": "functions/secure_get_page",
+            "entrypoint": "src/index.js",
+            "ignore": [
+                "node_modules",
+                ".npm"
+            ],
+            "execute": [],
+            "events": [],
+            "schedule": "",
+            "timeout": 15
+        }
+    ]
 }

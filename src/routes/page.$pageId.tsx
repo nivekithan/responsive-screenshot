@@ -12,6 +12,7 @@ import { generateScreenshotFn } from "@/lib/appwrite";
 import { getCurrentUser } from "@/lib/auth";
 import {
   getApprovalStatus,
+  getPageAccessEmails,
   setApprovalStatus,
   storeComment,
   updatePageUrl,
@@ -41,15 +42,20 @@ export async function loader({ params }: LoaderFunctionArgs) {
 
   const pagePromise = getPage({ id: pageId });
   const statusPromise = getApprovalStatus({ pageId });
+  const pageAccessEmailsPromise = getPageAccessEmails(pageId);
 
-  const [page, status] = await Promise.all([pagePromise, statusPromise]);
+  const [page, status, pageAccessEmails] = await Promise.all([
+    pagePromise,
+    statusPromise,
+    pageAccessEmailsPromise,
+  ]);
 
   if (!page.valid) {
     // TODO: DO Error handling
     throw redirect("/");
   }
 
-  return { page: page.page, status: status };
+  return { page: page.page, status: status, pageAccessEmails };
 }
 
 export async function action({ request, params }: ActionFunctionArgs) {
@@ -115,7 +121,7 @@ function useTypedLoader() {
 }
 
 export function ScreenshotPage() {
-  const { page, status } = useTypedLoader();
+  const { page, status, pageAccessEmails } = useTypedLoader();
   const pageCommentContainer = useRef<HTMLDivElement | null>(null);
 
   const scrollCommentToBottom = useCallback(() => {
@@ -131,7 +137,10 @@ export function ScreenshotPage() {
       <div className="grid place-items-center max-h-screen-minus-nav overflow-y-auto flex-grow px-10 bg-gray-300 bg-opacity-20 ">
         <img alt={`${page.name} of ${page.url}`} src={page.url} />
         <div className="fixed bottom-5 ">
-          <ScreenshotFloatingWidget page={page} />
+          <ScreenshotFloatingWidget
+            page={page}
+            pageAccessEmails={pageAccessEmails}
+          />
         </div>
       </div>
       <div className="w-1/3 h-screen-minus-nav relative border-l px-2 overflow-y-auto">

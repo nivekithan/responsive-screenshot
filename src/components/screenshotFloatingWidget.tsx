@@ -3,15 +3,20 @@ import { Form } from "react-router-dom";
 import { z } from "zod";
 import { PageModel } from "@/lib/storage";
 import { ShareScreenShotLinkDialog } from "./shareScreenShotLinkDialog";
+import { PageAccessEmailModel } from "@/lib/convert";
 
 export const updateScreenshotVersionSchema = z.object({
   updateScreenshotVersion: z.literal("true"),
 });
 
-export type ScreenshotFloatingWidgetProps = { page: PageModel };
+export type ScreenshotFloatingWidgetProps = {
+  page: PageModel;
+  pageAccessEmails: PageAccessEmailModel;
+};
 
 export function ScreenshotFloatingWidget({
   page,
+  pageAccessEmails,
 }: ScreenshotFloatingWidgetProps) {
   return (
     <div className="flex border px-3 py-1.5 rounded-md gap-x-3 text-accent-foreground items-center bg-background ">
@@ -34,7 +39,10 @@ export function ScreenshotFloatingWidget({
           Take screenshot again
         </Button>
       </Form>
-      <ShareScreenShotLinkDialog />
+      <ShareScreenShotLinkDialog
+        pageAccessEmails={pageAccessEmails}
+        pageId={page.id}
+      />
     </div>
   );
 }

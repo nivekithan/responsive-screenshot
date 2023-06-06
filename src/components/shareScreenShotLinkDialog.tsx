@@ -1,4 +1,4 @@
-import { Form } from "react-router-dom";
+import { Form, useRevalidator } from "react-router-dom";
 import { Button } from "./ui/button";
 import {
   Dialog,
@@ -16,6 +16,8 @@ import { z } from "zod";
 import { X } from "lucide-react";
 import { useState } from "react";
 import { useToast } from "./ui/use-toast";
+import { PageAccessEmailModel } from "@/lib/convert";
+import { createPageAccessEmails, updatePageAccessEmails } from "@/lib/storage";
 
 type EmailList = Set<string>;
 type emailReducerAction =
@@ -48,6 +50,16 @@ function shareToEmailListReducer(state: EmailList, action: emailReducerAction) {
   return state;
 }
 
+function initializePageAccessEmailState(
+  pageAccessEmails?: PageAccessEmailModel
+) {
+  if (!pageAccessEmails) {
+    return new Set<string>();
+  }
+
+  return new Set(pageAccessEmails.email);
+}
+
 function getLinkForSharing() {
   const url = new URL(window.location.href);
 
@@ -56,20 +68,30 @@ function getLinkForSharing() {
   return url.toString();
 }
 
-export function ShareScreenShotLinkDialog() {
+export type ShareScreenShotLinkDialogProps = {
+  pageAccessEmails?: PageAccessEmailModel;
+  pageId: string;
+};
+
+export function ShareScreenShotLinkDialog({
+  pageAccessEmails,
+  pageId,
+}: ShareScreenShotLinkDialogProps) {
   const { toast } = useToast();
   const [shareWithEmails, updateEmail] = useReducer(
     shareToEmailListReducer,
-    new Set<string>()
+    pageAccessEmails,
+    initializePageAccessEmailState
   );
   const emailInputRef = useRef<HTMLInputElement | null>(null);
 
   const [linkToShare, setLinkToShare] = useState("");
+  const revalidator = useRevalidator();
 
   const isLinkAvaliableToShare = !!linkToShare;
 
   return (
-    <Dialog open>
+    <Dialog>
       <DialogTrigger>
         <Button variant="outline" size="sm">
           Share Link
@@ -143,7 +165,17 @@ export function ShareScreenShotLinkDialog() {
             Copy Link
           </Button>
           <Button
-            onClick={() => {
+            onClick={async () => {
+              if (pageAccessEmails) {
+                await updatePageAccessEmails(
+                  pageAccessEmails.id,
+                  shareWithEmails
+                );
+              } else {
+                await createPageAccessEmails(pageId, shareWithEmails);
+              }
+              revalidator.revalidate();
+              toast({ description: "Link has been generated" });
               const link = getLinkForSharing();
               setLinkToShare(link);
             }}

@@ -11,7 +11,7 @@ export const collections = {
   PAGES: "647b0d9310b4ac4f8256",
   PAGE_APPROVAL_STATUS: "647c71d2cac511ce8e9b",
   PAGE_COMMENTS: "647cbdc2c63d3a217083",
-  PAGE_ACCESS_EMAILS: "647ef1372b715b0dfa6b",
+  PAGE_ACCESS_EMAILS: "647f3355ed75a176dba9",
 };
 
 export type PageModel = {
@@ -214,29 +214,44 @@ export async function getPageComments({ pageId }: GetPageCommentsArgs) {
   return commentModelList;
 }
 
-export async function createPageAccess(pageId: string, email: string) {
+export async function getPageAccessEmails(pageId: string) {
+  const documents = await databases.listDocuments(
+    DATABASE_ID,
+    collections.PAGE_ACCESS_EMAILS,
+    [Query.equal("pageId", pageId)]
+  );
+
+  return documents.documents.map(convertPageAccessEmailModel)[0];
+}
+
+export async function createPageAccessEmails(
+  pageId: string,
+  emailList: Set<string>
+) {
+  const emailListArr = new Array(...emailList);
+
   const createdDoc = await databases.createDocument(
     DATABASE_ID,
     collections.PAGE_ACCESS_EMAILS,
     ID.unique(),
-    { pageId, email }
+    { pageId, emails: emailListArr }
   );
 
   return convertPageAccessEmailModel(createdDoc);
 }
 
-export async function deletePageAccess(documentId: string) {
-  return databases.deleteDocument(
-    DATABASE_ID,
-    collections.PAGE_ACCESS_EMAILS,
-    documentId
-  );
-}
+export async function updatePageAccessEmails(
+  pageAccessEmailDocId: string,
+  emailList: Set<string>
+) {
+  const emailListArr = new Array(...emailList);
 
-export async function listPageAccessEmails(pageId: string) {
-  const docList = await databases.listDocuments(
+  const createdDoc = await databases.updateDocument(
     DATABASE_ID,
     collections.PAGE_ACCESS_EMAILS,
-    [Query.equal("pageId", pageId)]
+    pageAccessEmailDocId,
+    { emails: emailListArr }
   );
+
+  return convertPageAccessEmailModel(createdDoc);
 }

@@ -23,15 +23,15 @@ export type CommentModel = ReturnType<typeof convertPageCommentModel>;
 const PageAccessEmailSchema = z.object({
   $id: z.string(),
   pageId: z.string(),
-  email: z.string(),
+  emails: z.array(z.string()),
 });
 
-export async function convertPageAccessEmailModel(pageAccessEmail: unknown) {
+export function convertPageAccessEmailModel(pageAccessEmail: unknown) {
   const payload = PageAccessEmailSchema.parse(pageAccessEmail);
 
   return {
     id: payload.$id,
-    email: payload.email,
+    email: payload.emails,
     pageId: payload.pageId,
   };
 }

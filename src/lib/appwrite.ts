@@ -11,10 +11,10 @@ export const databases = new Databases(client);
 
 const functions = new Functions(client);
 
-export async function generateScreenshotFn(url: string) {
+export async function generateScreenshotFn(url: string, version: string) {
   const res = await functions.createExecution(
     "647895cd6af709744cbe",
-    JSON.stringify({ url, version: `1` })
+    JSON.stringify({ url, version })
   );
 
   const response = z

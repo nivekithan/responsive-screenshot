@@ -1,13 +1,17 @@
 import { AppwriteException, ID, Query } from "appwrite";
 import { databases } from "./appwrite";
 import { ErrorReasons, isDocumentNotFoundException } from "./utils";
-import { convertPageCommentModel } from "./convert";
+import {
+  convertPageAccessEmailModel,
+  convertPageCommentModel,
+} from "./convert";
 
 export const DATABASE_ID = "dev";
 export const collections = {
   PAGES: "647b0d9310b4ac4f8256",
   PAGE_APPROVAL_STATUS: "647c71d2cac511ce8e9b",
   PAGE_COMMENTS: "647cbdc2c63d3a217083",
+  PAGE_ACCESS_EMAILS: "647ef1372b715b0dfa6b",
 };
 
 export type PageModel = {
@@ -78,6 +82,7 @@ export type StorePageProps = {
 };
 export async function storePage({ name, url, originalUrl }: StorePageProps) {
   const insertedPage = await databases
+
     .createDocument(DATABASE_ID, collections.PAGES, ID.unique(), {
       url,
       name,
@@ -86,6 +91,22 @@ export async function storePage({ name, url, originalUrl }: StorePageProps) {
     .catch((err: AppwriteException) => err);
 
   return insertedPage;
+}
+
+export type UpdatePageUrlArgs = {
+  url: string;
+  pageId: string;
+};
+
+export async function updatePageUrl({ url, pageId }: UpdatePageUrlArgs) {
+  const updatedPage = await databases.updateDocument(
+    DATABASE_ID,
+    collections.PAGES,
+    pageId,
+    { url }
+  );
+
+  return updatedPage;
 }
 
 export type ApprovalStatusModel = {
@@ -191,4 +212,31 @@ export async function getPageComments({ pageId }: GetPageCommentsArgs) {
     .reverse();
 
   return commentModelList;
+}
+
+export async function createPageAccess(pageId: string, email: string) {
+  const createdDoc = await databases.createDocument(
+    DATABASE_ID,
+    collections.PAGE_ACCESS_EMAILS,
+    ID.unique(),
+    { pageId, email }
+  );
+
+  return convertPageAccessEmailModel(createdDoc);
+}
+
+export async function deletePageAccess(documentId: string) {
+  return databases.deleteDocument(
+    DATABASE_ID,
+    collections.PAGE_ACCESS_EMAILS,
+    documentId
+  );
+}
+
+export async function listPageAccessEmails(pageId: string) {
+  const docList = await databases.listDocuments(
+    DATABASE_ID,
+    collections.PAGE_ACCESS_EMAILS,
+    [Query.equal("pageId", pageId)]
+  );
 }

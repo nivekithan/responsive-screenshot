@@ -1,14 +1,20 @@
 import { RealTimeComments } from "@/components/realtimeComments";
 import {
+  ScreenshotFloatingWidget,
+  updateScreenshotVersionSchema,
+} from "@/components/screenshotFloatingWidget";
+import {
   ScreenshotFeedbackForm,
   addCommentSchema,
   updateApprovalStatusSchema,
 } from "@/components/screeshotFeedbackForm";
+import { generateScreenshotFn } from "@/lib/appwrite";
 import { getCurrentUser } from "@/lib/auth";
 import {
   getApprovalStatus,
   setApprovalStatus,
   storeComment,
+  updatePageUrl,
 } from "@/lib/storage";
 import { getPage } from "@/lib/storage";
 import { parse } from "@conform-to/zod";
@@ -56,8 +62,13 @@ export async function action({ request, params }: ActionFunctionArgs) {
 
   const formData = await request.formData();
 
+  console.log(formData);
   const submission = parse(formData, {
-    schema: z.union([updateApprovalStatusSchema, addCommentSchema]),
+    schema: z.union([
+      updateApprovalStatusSchema,
+      addCommentSchema,
+      updateScreenshotVersionSchema,
+    ]),
   });
 
   if (!submission.value || submission.intent !== "submit") {
@@ -70,11 +81,29 @@ export async function action({ request, params }: ActionFunctionArgs) {
       approvalStatus: submission.value.status,
     });
     return submission;
-  } else {
+  } else if ("comment" in submission.value) {
     await storeComment({
       pageId: parsedParams.pageId,
       comment: submission.value.comment,
     });
+    return submission;
+  } else if ("updateScreenshotVersion" in submission.value) {
+    const pageRes = await getPage({ id: parsedParams.pageId });
+
+    if (!pageRes.valid) {
+      // TODO: Proper error handling
+      return submission;
+    }
+
+    const page = pageRes.page;
+
+    const url = await generateScreenshotFn(
+      page.originalUrl,
+      `${new Date().getTime()}`
+    );
+
+    await updatePageUrl({ pageId: parsedParams.pageId, url });
+
     return submission;
   }
 }
@@ -98,9 +127,12 @@ export function ScreenshotPage() {
   }, []);
 
   return (
-    <main className="flex">
-      <div className="grid place-items-center max-h-screen-minus-nav overflow-y-auto flex-grow px-6">
-        {/* <img alt={`${page.name} of ${page.url}`} src={page.url} /> */}
+    <main className="flex bg-background">
+      <div className="grid place-items-center max-h-screen-minus-nav overflow-y-auto flex-grow px-10 bg-gray-300 bg-opacity-20 ">
+        <img alt={`${page.name} of ${page.url}`} src={page.url} />
+        <div className="fixed bottom-5 ">
+          <ScreenshotFloatingWidget page={page} />
+        </div>
       </div>
       <div className="w-1/3 h-screen-minus-nav relative border-l px-2 overflow-y-auto">
         <div

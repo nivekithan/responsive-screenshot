@@ -79,7 +79,7 @@ export function ScreenshotFeedbackForm({
           {...conform.input(comment)}
           defaultValue={undefined}
         />
-        <Button type="submit" variant="secondary">
+        <Button type="submit" variant="default">
           Send
         </Button>
       </commentFetcher.Form>

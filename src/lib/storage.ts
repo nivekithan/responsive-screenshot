@@ -1,5 +1,5 @@
 import { AppwriteException, ID, Permission, Query, Role } from "appwrite";
-import { databases } from "./appwrite";
+import { databases, secureGetPage } from "./appwrite";
 import { ErrorReasons, isDocumentNotFoundException } from "./utils";
 import {
   convertPageAccessEmailModel,
@@ -54,7 +54,16 @@ export type GetPageRes =
 export async function getPage({ id }: GetPageProps): Promise<GetPageRes> {
   const page = await databases
     .getDocument(DATABASE_ID, collections.PAGES, id)
-    .catch((err: AppwriteException) => err);
+    .catch((err: AppwriteException) => {
+      return secureGetPage(id).then((res) => {
+        console.log(res);
+        if (res === null) {
+          return err;
+        } else {
+          return res;
+        }
+      });
+    });
 
   if (page instanceof AppwriteException && isDocumentNotFoundException(page)) {
     return { valid: false, reason: ErrorReasons.pageNotFound };

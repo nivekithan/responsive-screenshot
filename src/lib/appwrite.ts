@@ -1,4 +1,4 @@
-import { Account, Client, Databases, Functions } from "appwrite";
+import { Account, Client, Databases, Functions, Models } from "appwrite";
 import { z } from "zod";
 
 const client = new Client()
@@ -22,6 +22,23 @@ export async function generateScreenshotFn(url: string, version: string) {
     .parse(JSON.parse(res.response));
 
   return response.screenshotUrl;
+}
+
+export async function secureGetPage(pageId: string) {
+  const res = await functions.createExecution(
+    "647f57bdf1bb2d3157b6",
+    JSON.stringify({
+      pageId,
+    })
+  );
+
+  const response = JSON.parse(res.response || `null`);
+
+  if (response === null) {
+    return null;
+  }
+
+  return response as Models.Document;
 }
 
 export const subscribe = client.subscribe.bind(client);

@@ -1,23 +1,40 @@
-import { Outlet, ScrollRestoration, redirect } from "react-router-dom";
+import {
+  Outlet,
+  ScrollRestoration,
+  redirect,
+  useLoaderData,
+} from "react-router-dom";
 import { getCurrentUser } from "./lib/auth";
 import { Navigation } from "./components/navigation";
 import { Toaster } from "./components/ui/toaster";
+import { isSlackAppInstalled } from "./lib/storage";
 
 export async function loader() {
-  const user = await getCurrentUser();
+  const userRes = await getCurrentUser();
 
-  if (!user.valid) {
+  if (!userRes.valid) {
     throw redirect("/login");
   }
 
-  return null;
+  const hasSlackAppInstalled = await isSlackAppInstalled({
+    userId: userRes.user.$id,
+  });
+
+  return { isSlackAppInstalled: hasSlackAppInstalled };
+}
+
+function useTypedLoaderData() {
+  const loaderData = useLoaderData();
+
+  return loaderData as Awaited<ReturnType<typeof loader>>;
 }
 
 export function RouteLayout() {
+  const { isSlackAppInstalled } = useTypedLoaderData();
   return (
     <>
       <div>
-        <Navigation />
+        <Navigation showSlackInstallButton={!isSlackAppInstalled} />
         <Outlet />
       </div>
       <Toaster />

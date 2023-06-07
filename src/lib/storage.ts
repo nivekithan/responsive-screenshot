@@ -12,6 +12,7 @@ export const collections = {
   PAGE_APPROVAL_STATUS: "647c71d2cac511ce8e9b",
   PAGE_COMMENTS: "647f630632a9fb64e6ef",
   PAGE_ACCESS_EMAILS: "647f3355ed75a176dba9",
+  USER_WEBHOOK_URL: "648046bd24a66d4b1503",
 };
 
 export type PageModel = {
@@ -80,7 +81,7 @@ export async function getPage({ id }: GetPageProps): Promise<GetPageRes> {
       name: page.name,
       originalUrl: page.originalUrl,
       url: page.url,
-    }
+    },
   };
 }
 
@@ -279,4 +280,18 @@ export async function updatePageAccessEmails(
   );
 
   return convertPageAccessEmailModel(createdDoc);
+}
+
+export type IsSlackAppInstalledArgs = {
+  userId: string;
+};
+
+export async function isSlackAppInstalled({ userId }: IsSlackAppInstalledArgs) {
+  const docList = await databases.listDocuments(
+    DATABASE_ID,
+    collections.USER_WEBHOOK_URL,
+    [Query.equal("userId", userId)]
+  );
+
+  return docList.total !== 0;
 }

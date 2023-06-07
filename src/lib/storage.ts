@@ -204,13 +204,19 @@ export async function setApprovalStatus({
 export type StoreCommentArgs = {
   comment: string;
   pageId: string;
+  userId: string;
 };
 
-export async function storeComment({ comment, pageId }: StoreCommentArgs) {
+export async function storeComment({
+  comment,
+  pageId,
+  userId,
+}: StoreCommentArgs) {
   const insertedDocument = await databases
     .createDocument(DATABASE_ID, collections.PAGE_COMMENTS, ID.unique(), {
       pageId,
       comment,
+      createdBy: userId,
     })
     .catch((err: AppwriteException) => err);
 

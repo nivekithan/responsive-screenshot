@@ -91,6 +91,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
     await storeComment({
       pageId: parsedParams.pageId,
       comment: submission.value.comment,
+      userId: userRes.user.$id,
     });
     return submission;
   } else if ("updateScreenshotVersion" in submission.value) {

@@ -16,35 +16,53 @@ const WEBSITE_HOST = "niveth.loca.lt";
 
 const ReqSchema = z.object({
   variables: z.object({
-    APPWRITE_FUNCTION_EVENT: z
-      .string()
-      .startsWith(
-        `databases.${DATABASE_ID}.collections.${collections.PAGE_APPROVAL_STATUS}.documents`
-      ),
+    APPWRITE_FUNCTION_EVENT: z.union([
+      z
+        .string()
+        .startsWith(
+          `databases.${DATABASE_ID}.collections.${collections.PAGE_APPROVAL_STATUS}.documents`
+        ),
+      z
+        .string()
+        .startsWith(
+          `databases.${DATABASE_ID}.collections.${collections.PAGE_COMMENTS}.documents`
+        ),
+    ]),
     APPWRITE_FUNCTION_EVENT_DATA: z.string(),
     ACCESS_KEY: z.string(),
   }),
 });
 
-const EventDataSchema = z.object({
+const PageApprovalStatusDocSchema = z.object({
   $id: z.string(),
   status: z.union([z.literal("APPROVED"), z.literal("DISAPPROVED")]),
   createdBy: z.string(),
   pageId: z.string(),
 });
 
+const PageCommentsDocSchema = z.object({
+  $id: z.string(),
+  createdBy: z.string(),
+  pageId: z.string(),
+  comment: z.string(),
+});
+
+const EventDataSchema = z.union([
+  PageApprovalStatusDocSchema,
+  PageCommentsDocSchema,
+]);
+
 export async function handleEvent(
   req: unknown,
   res: { json(obj: unknown, code?: number): void }
 ) {
   try {
-    console.log("Hello there");
     const { variables } = ReqSchema.parse(req);
+
     const eventData = EventDataSchema.parse(
       JSON.parse(variables.APPWRITE_FUNCTION_EVENT_DATA)
     );
 
-    console.log("2");
     const client = new Client()
       .setEndpoint("https://cloud.appwrite.io/v1")
       .setProject("pdf")
@@ -61,8 +79,6 @@ export async function handleEvent(
       getWebhookUrlAndPage(pageId, database),
     ]);
 
-    console.log(3);
-
     if (!webhookAndImageUrl) {
       console.log("Unable able to find webhook url. Ignoring this event");
       return;
@@ -70,11 +86,24 @@ export async function handleEvent(
 
     const { page, webhookUrl } = webhookAndImageUrl;
 
-    const webhookBody = formatTextForStatus({
-      email,
-      page,
-      status: eventData.status,
-    });
+    const webhookBody = (() => {
+      if ("status" in eventData) {
+        const webhookBody = formatTextForStatus({
+          email,
+          page,
+          status: eventData.status,
+        });
+        return webhookBody;
+      } else if ("comment" in eventData) {
+        const webhookBody = formatTextForComment({
+          email,
+          page,
+          comment: eventData.comment,
+        });
+
+        return webhookBody;
+      }
+    })();
 
     const resFromSlack = await fetch(webhookUrl, {
       method: "post",
@@ -94,8 +123,6 @@ export async function handleEvent(
 
 async function getUserEmail(userId: string, users: Users) {
   const userObj = await users.get(userId);
-
-  console.log("user");
 
   return userObj.email;
 }
@@ -129,15 +156,13 @@ async function getWebhookUrlAndPage(pageId: string, database: Databases) {
     userWebhookUrlDocList.documents[0]
   );
 
-  console.log("webhook");
-
   return { webhookUrl: docs.url, page: pageObj };
 }
 
 type FormatTextOnSaveArgs = {
   email: string;
   page: z.infer<typeof PageDocSchema>;
-  status: z.infer<typeof EventDataSchema>["status"];
+  status: z.infer<typeof PageApprovalStatusDocSchema>["status"];
 };
 
 function formatTextForStatus({ email, page, status }: FormatTextOnSaveArgs) {
@@ -150,6 +175,41 @@ function formatTextForStatus({ email, page, status }: FormatTextOnSaveArgs) {
           text: `${email} has ${status.toLocaleLowerCase()} your <${`https://${WEBSITE_HOST}/page/${page.$id}`}|${
             page.name
           }>`,
+        },
+      },
+      {
+        type: "image",
+        title: {
+          type: "plain_text",
+          text: `${page.name}`,
+          emoji: true,
+        },
+        image_url: page.url,
+        alt_text: page.name,
+      },
+    ],
+  };
+}
+
+type FormatTextForCommentArgs = {
+  email: string;
+  page: z.infer<typeof PageDocSchema>;
+  comment: string;
+};
+function formatTextForComment({
+  email,
+  page,
+  comment,
+}: FormatTextForCommentArgs) {
+  return {
+    blocks: [
+      {
+        type: "section",
+        text: {
+          type: "mrkdwn",
+          text: `${email} has commented on <${`https://${WEBSITE_HOST}/page/${page.$id}`}|${
+            page.name
+          }>:\n>${comment}`,
         },
       },
       {

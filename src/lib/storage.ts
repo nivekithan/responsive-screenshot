@@ -10,7 +10,7 @@ export const DATABASE_ID = "dev";
 export const collections = {
   PAGES: "647b0d9310b4ac4f8256",
   PAGE_APPROVAL_STATUS: "647c71d2cac511ce8e9b",
-  PAGE_COMMENTS: "647cbdc2c63d3a217083",
+  PAGE_COMMENTS: "647f630632a9fb64e6ef",
   PAGE_ACCESS_EMAILS: "647f3355ed75a176dba9",
 };
 
@@ -80,7 +80,7 @@ export async function getPage({ id }: GetPageProps): Promise<GetPageRes> {
       name: page.name,
       originalUrl: page.originalUrl,
       url: page.url,
-    },
+    }
   };
 }
 

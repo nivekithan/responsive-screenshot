@@ -8,6 +8,7 @@ import * as signUpPage from "./routes/signUp";
 import * as logoutPage from "./routes/logout";
 import * as rootIndexPage from "./routes/_index";
 import * as screenshotPage from "./routes/page.$pageId";
+import * as slackRedirectPage from "./routes/slack.oauth.redirect";
 
 const router = createBrowserRouter([
   {
@@ -45,6 +46,10 @@ const router = createBrowserRouter([
   {
     path: "/logout",
     action: logoutPage.action,
+  },
+  {
+    path: "/slack/oauth/redirect",
+    loader: slackRedirectPage.loader,
   },
 ]);
 

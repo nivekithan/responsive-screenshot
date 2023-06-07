@@ -47,6 +47,21 @@
             "events": [],
             "schedule": "",
             "timeout": 15
+        },
+        {
+            "$id": "64807f7cd670ed6f0c07",
+            "name": "message_to_slack",
+            "runtime": "node-16.0",
+            "path": "functions/message_to_slack",
+            "entrypoint": "src/index.js",
+            "ignore": [
+                "node_modules",
+                ".npm"
+            ],
+            "execute": [],
+            "events": [],
+            "schedule": "",
+            "timeout": 15
         }
     ]
 }

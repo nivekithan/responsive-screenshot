@@ -59,16 +59,15 @@ export async function loader({ params }: LoaderFunctionArgs) {
 }
 
 export async function action({ request, params }: ActionFunctionArgs) {
-  const user = await getCurrentUser();
+  const userRes = await getCurrentUser();
   const parsedParams = ParamsSchema.parse(params);
 
-  if (!user.valid) {
+  if (!userRes.valid) {
     throw redirect("/login", { status: 400 });
   }
 
   const formData = await request.formData();
 
-  console.log(formData);
   const submission = parse(formData, {
     schema: z.union([
       updateApprovalStatusSchema,
@@ -85,6 +84,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
     await setApprovalStatus({
       pageId: parsedParams.pageId,
       approvalStatus: submission.value.status,
+      userId: userRes.user.$id,
     });
     return submission;
   } else if ("comment" in submission.value) {

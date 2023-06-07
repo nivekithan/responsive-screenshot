@@ -166,22 +166,25 @@ export async function getApprovalStatus({
 export type StoreApprovalStatusArgs = {
   pageId: string;
   approvalStatus: ApprovalStatusModel["status"];
+  userId: string;
 };
 
 export async function setApprovalStatus({
   pageId,
   approvalStatus,
+  userId,
 }: StoreApprovalStatusArgs) {
   // TODO: Proper error handling
   const status = await getApprovalStatus({ pageId });
-  const isStatusPresent = status === null;
+  const isStatusPresent = status !== null;
 
-  if (isStatusPresent) {
+  if (!isStatusPresent) {
     const createdStatus = await databases.createDocument(
       DATABASE_ID,
       collections.PAGE_APPROVAL_STATUS,
       ID.unique(),
-      { pageId, status: approvalStatus }
+      { pageId, status: approvalStatus, createdBy: userId },
+      [Permission.read(Role.user(userId)), Permission.update(Role.user(userId))]
     );
     return createdStatus;
   } else {

@@ -32,6 +32,21 @@
             "events": [],
             "schedule": "",
             "timeout": 15
+        },
+        {
+            "$id": "64802d9ee57927d8feb2",
+            "name": "slack_install_app",
+            "runtime": "node-16.0",
+            "path": "functions/slack_install_app",
+            "entrypoint": "src/index.js",
+            "ignore": [
+                "node_modules",
+                ".npm"
+            ],
+            "execute": [],
+            "events": [],
+            "schedule": "",
+            "timeout": 15
         }
     ]
 }

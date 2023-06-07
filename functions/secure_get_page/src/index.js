@@ -31,7 +31,6 @@ const collections = {
 
 module.exports = async function (req, res) {
   try {
-    console.log("I am here");
     const { ACCESS_KEY, APPWRITE_FUNCTION_USER_ID } = VariablesSchema.parse(
       req.variables
     );
@@ -95,9 +94,7 @@ module.exports = async function (req, res) {
       getEmailOfUser(APPWRITE_FUNCTION_USER_ID),
     ]);
 
-    console.log("I am here 2");
     if (!emails.includes(userEmail)) {
-      console.log("unknown email");
       return res.json(null, 401);
     }
 

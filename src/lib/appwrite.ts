@@ -1,6 +1,5 @@
 import { Account, Client, Databases, Functions, Models } from "appwrite";
 import { z } from "zod";
-
 const client = new Client()
   .setEndpoint("https://cloud.appwrite.io/v1") // Your API Endpoint
   .setProject("pdf"); // Your project ID
@@ -39,6 +38,23 @@ export async function secureGetPage(pageId: string) {
   }
 
   return response as Models.Document;
+}
+
+export type SlackInstallAppArgs = {
+  code: string;
+};
+
+export async function slackInstallApp({ code }: SlackInstallAppArgs) {
+  const res = await functions.createExecution(
+    "64802d9ee57927d8feb2",
+    JSON.stringify({ code })
+  );
+
+  const response = z
+    .object({ success: z.boolean() })
+    .parse(JSON.parse(res.response));
+
+  return response;
 }
 
 export const subscribe = client.subscribe.bind(client);

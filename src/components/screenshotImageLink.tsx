@@ -6,7 +6,7 @@ export type ScreenshotImageLinkProps = {
 };
 
 export function ScreenshotImageLink({
-  screenshotPage: { id, url, screenName, width, height },
+  screenshotPage: { id, url, screenName, width, height, name },
 }: ScreenshotImageLinkProps) {
   return (
     <Link to={`/page/${id}`} className="hover:bg-accent pb-2 border rounded-md">
@@ -18,7 +18,7 @@ export function ScreenshotImageLink({
           crossOrigin="anonymous"
           loading="lazy"
         />
-        <p className="pt-2 overflow-hidden text-ellipsis whitespace-nowrap">
+        <p className="pt-2 overflow-hidden text-ellipsis whitespace-nowrap px-2">
           {screenName}
         </p>
         <p className="text-sm text-muted-foreground">{`${width} x ${height}`}</p>

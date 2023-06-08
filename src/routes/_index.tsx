@@ -4,6 +4,7 @@ import { Heading } from "@/components/ui/heading";
 import { Separator } from "@/components/ui/separator";
 import { generateScreenshotFn } from "@/lib/appwrite";
 import { getCurrentUser } from "@/lib/auth";
+import { PageModel } from "@/lib/convert";
 import { getPages, storePage } from "@/lib/storage";
 import { useForm } from "@conform-to/react";
 import { parse } from "@conform-to/zod";
@@ -115,32 +116,25 @@ export function RootIndexPage() {
     },
   });
 
-  const isPagesEmpty = loaderData === null || loaderData.length === 0;
+  const groupedPages = React.useMemo(() => {
+    if (!loaderData) {
+      return null;
+    }
 
-  // return isPagesEmpty ? (
-  //   <CreateNewPage
-  //     formComponent={
-  //       <NewSiteForm formProps={form.props} nameConfig={name} urlConfig={url} />
-  //     }
-  //   />
-  // ) : (
-  //   <main className="px-6 py-3">
-  //     <Heading className="pb-8 text-xl">All Pages</Heading>
-  //     <div className="flex gap-x-4 flex-wrap gap-y-4">
-  //       {loaderData.map(({ url, id, name, originalUrl }) => {
-  //         return (
-  //           <ScreenshotImageLink
-  //             url={url}
-  //             key={id}
-  //             name={name}
-  //             originalUrl={originalUrl}
-  //             id={id}
-  //           />
-  //         );
-  //       })}
-  //     </div>
-  //   </main>
-  // );
+    const groups: Array<{ name: string; pages: Array<PageModel> }> = [];
+
+    loaderData.forEach((page) => {
+      const groupItem = groups.find((v) => v.name === page.name);
+
+      if (groupItem) {
+        groupItem.pages.push(page);
+      } else {
+        groups.push({ name: page.name, pages: [page] });
+      }
+    });
+
+    return groups;
+  }, [loaderData]);
 
   return (
     <div>
@@ -154,15 +148,25 @@ export function RootIndexPage() {
         }
       />
       <Separator />
-
-      <section className="px-6 py-3">
-        <Heading className="pb-8 text-xl">All Pages</Heading>
-        <div className="flex gap-x-4 flex-wrap gap-y-4">
-          {loaderData?.map((page) => {
-            return <ScreenshotImageLink screenshotPage={page} />;
-          })}
-        </div>
-      </section>
+      {groupedPages
+        ? groupedPages.map(({ name, pages }) => {
+            return (
+              <section className="px-6 py-3" key={pages[0].id}>
+                <Heading className="pb-8 text-xl">{name}</Heading>
+                <div className="flex gap-x-4 flex-wrap gap-y-4">
+                  {pages.map((page) => {
+                    return (
+                      <ScreenshotImageLink
+                        screenshotPage={page}
+                        key={page.id}
+                      />
+                    );
+                  })}
+                </div>
+              </section>
+            );
+          })
+        : null}
     </div>
   );
 }

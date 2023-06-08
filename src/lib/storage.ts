@@ -7,6 +7,7 @@ import {
   convertPageCommentModel,
   convertPageModel,
 } from "./convert";
+import pRetry from "p-retry";
 
 export const DATABASE_ID = "dev";
 export const collections = {
@@ -19,7 +20,10 @@ export const collections = {
 
 export async function getPages() {
   const pages = await databases
-    .listDocuments(DATABASE_ID, collections.PAGES, [Query.limit(100)])
+    .listDocuments(DATABASE_ID, collections.PAGES, [
+      Query.limit(100),
+      Query.orderDesc("$createdAt"),
+    ])
     .catch((err: AppwriteException) => err);
 
   if (pages instanceof AppwriteException) {
@@ -87,28 +91,30 @@ export async function storePage({
   screenName,
   width,
 }: StorePageProps) {
-  const insertedPage = await databases
-
-    .createDocument(
-      DATABASE_ID,
-      collections.PAGES,
-      ID.unique(),
-      {
-        url,
-        originalUrl,
-        name,
-        height,
-        screenName,
-        width,
-        createdBy: userId,
-      },
-      [
-        Permission.read(Role.user(userId)),
-        Permission.update(Role.user(userId)),
-        Permission.delete(Role.user(userId)),
-      ]
-    )
-    .catch((err: AppwriteException) => err);
+  const insertedPage = await pRetry(
+    () => {
+      return databases.createDocument(
+        DATABASE_ID,
+        collections.PAGES,
+        ID.unique(),
+        {
+          url,
+          originalUrl,
+          name,
+          height,
+          screenName,
+          width,
+          createdBy: userId,
+        },
+        [
+          Permission.read(Role.user(userId)),
+          Permission.update(Role.user(userId)),
+          Permission.delete(Role.user(userId)),
+        ]
+      );
+    },
+    { retries: 3 }
+  ).catch((err: AppwriteException) => err);
 
   return insertedPage;
 }

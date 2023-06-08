@@ -104,12 +104,20 @@ export async function action({ request, params }: ActionFunctionArgs) {
 
     const page = pageRes.page;
 
-    const url = await generateScreenshotFn(
+    const screenshots = await generateScreenshotFn(
       page.originalUrl,
       `${new Date().getTime()}`
     );
 
-    await updatePageUrl({ pageId: parsedParams.pageId, url });
+    const currentPageScreenshot = screenshots.find(
+      (v) => v.name === page.screenName
+    );
+
+    if (!currentPageScreenshot) {
+      throw new Error("unreachable");
+    }
+
+    await updatePageUrl({ pageId: page.id, url: currentPageScreenshot?.url });
 
     return submission;
   }
@@ -144,7 +152,7 @@ export function ScreenshotPage() {
           />
         </div>
       </div>
-      <div className="w-1/3 h-screen-minus-nav relative border-l px-2 overflow-y-auto">
+      <div className="flex-grow-0 flex-shrink-0 basis-1/3 h-screen-minus-nav relative border-l px-2 overflow-y-auto">
         <div
           className="h-screen-minus-nav-2 overflow-y-auto"
           ref={pageCommentContainer}

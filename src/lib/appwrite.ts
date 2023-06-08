@@ -17,10 +17,19 @@ export async function generateScreenshotFn(url: string, version: string) {
   );
 
   const response = z
-    .object({ screenshotUrl: z.string() })
+    .object({
+      screenshotUrls: z.array(
+        z.object({
+          name: z.string(),
+          url: z.string(),
+          width: z.number(),
+          height: z.number(),
+        })
+      ),
+    })
     .parse(JSON.parse(res.response));
 
-  return response.screenshotUrl;
+  return response.screenshotUrls;
 }
 
 export async function secureGetPage(pageId: string) {

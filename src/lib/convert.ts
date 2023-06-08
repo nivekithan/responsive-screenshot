@@ -39,3 +39,25 @@ export function convertPageAccessEmailModel(pageAccessEmail: unknown) {
 export type PageAccessEmailModel = ReturnType<
   typeof convertPageAccessEmailModel
 >;
+
+const PageSchema = z.object({
+  url: z.string(),
+  name: z.string(),
+  originalUrl: z.string(),
+  createdBy: z.string(),
+  screenName: z.string(),
+  width: z.number(),
+  height: z.number(),
+  $id: z.string(),
+});
+
+export function convertPageModel(page: unknown) {
+  const payload = PageSchema.parse(page);
+
+  return {
+    id: payload.$id,
+    ...payload,
+  };
+}
+
+export type PageModel = ReturnType<typeof convertPageModel>;

@@ -1,17 +1,12 @@
+import { PageModel } from "@/lib/convert";
 import { Link } from "react-router-dom";
 
 export type ScreenshotImageLinkProps = {
-  url: string;
-  name: string;
-  originalUrl: string;
-  id: string;
+  screenshotPage: PageModel;
 };
 
 export function ScreenshotImageLink({
-  name,
-  originalUrl,
-  url,
-  id,
+  screenshotPage: { id, url, screenName, width, height },
 }: ScreenshotImageLinkProps) {
   return (
     <Link to={`/page/${id}`} className="hover:bg-accent pb-2 border rounded-md">
@@ -23,8 +18,10 @@ export function ScreenshotImageLink({
           crossOrigin="anonymous"
           loading="lazy"
         />
-        <p className="pt-2">{name}</p>
-        <p className="text-sm text-muted-foreground">{originalUrl}</p>
+        <p className="pt-2 overflow-hidden text-ellipsis whitespace-nowrap">
+          {screenName}
+        </p>
+        <p className="text-sm text-muted-foreground">{`${width} x ${height}`}</p>
       </div>
     </Link>
   );

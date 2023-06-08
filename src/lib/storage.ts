@@ -2,8 +2,10 @@ import { AppwriteException, ID, Permission, Query, Role } from "appwrite";
 import { databases, secureGetPage } from "./appwrite";
 import { ErrorReasons, isDocumentNotFoundException } from "./utils";
 import {
+  PageModel,
   convertPageAccessEmailModel,
   convertPageCommentModel,
+  convertPageModel,
 } from "./convert";
 
 export const DATABASE_ID = "dev";
@@ -15,29 +17,15 @@ export const collections = {
   USER_WEBHOOK_URL: "648046bd24a66d4b1503",
 };
 
-export type PageModel = {
-  url: string;
-  name: string;
-  originalUrl: string;
-  id: string;
-};
-
 export async function getPages() {
   const pages = await databases
-    .listDocuments(DATABASE_ID, collections.PAGES, [Query.limit(10)])
+    .listDocuments(DATABASE_ID, collections.PAGES, [Query.limit(100)])
     .catch((err: AppwriteException) => err);
 
   if (pages instanceof AppwriteException) {
     return pages;
   }
-  return pages.documents.map((document): PageModel => {
-    return {
-      url: document.url as string,
-      name: document.name as string,
-      originalUrl: document.originalUrl as string,
-      id: document.$id,
-    };
-  });
+  return pages.documents.map(convertPageModel);
 }
 
 export type GetPageProps = {
@@ -76,12 +64,7 @@ export async function getPage({ id }: GetPageProps): Promise<GetPageRes> {
 
   return {
     valid: true,
-    page: {
-      id: page.$id,
-      name: page.name,
-      originalUrl: page.originalUrl,
-      url: page.url,
-    },
+    page: convertPageModel(page),
   };
 }
 
@@ -90,12 +73,19 @@ export type StorePageProps = {
   name: string;
   originalUrl: string;
   userId: string;
+  screenName: string;
+  width: number;
+  height: number;
 };
+
 export async function storePage({
   name,
   url,
   originalUrl,
   userId,
+  height,
+  screenName,
+  width,
 }: StorePageProps) {
   const insertedPage = await databases
 
@@ -105,8 +95,12 @@ export async function storePage({
       ID.unique(),
       {
         url,
-        name,
         originalUrl,
+        name,
+        height,
+        screenName,
+        width,
+        createdBy: userId,
       },
       [
         Permission.read(Role.user(userId)),

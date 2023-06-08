@@ -1,6 +1,7 @@
 import { NewSiteForm } from "@/components/newSiteForm";
 import { ScreenshotImageLink } from "@/components/screenshotImageLink";
 import { Heading } from "@/components/ui/heading";
+import { Separator } from "@/components/ui/separator";
 import { generateScreenshotFn } from "@/lib/appwrite";
 import { getCurrentUser } from "@/lib/auth";
 import { getPages, storePage } from "@/lib/storage";
@@ -61,24 +62,34 @@ export async function action({ request }: ActionFunctionArgs) {
 
   const url = submission.value.url;
   const name = submission.value.name;
-  const screenshotUrl = await generateScreenshotFn(
+  const screenshotUrls = await generateScreenshotFn(
     url,
     `${new Date().getTime()}`
   );
 
-  const storePageRes = await storePage({
-    name,
-    url: screenshotUrl,
-    originalUrl: url,
-    userId: user.$id,
-  });
+  const storePageRes = await Promise.all(
+    screenshotUrls.map((screenshots) => {
+      return storePage({
+        name,
+        url: screenshots.url,
+        originalUrl: url,
+        userId: user.$id,
+        height: screenshots.height,
+        screenName: screenshots.name,
+        width: screenshots.width,
+      });
+    })
+  );
 
-  if (storePageRes instanceof AppwriteException) {
-    submission.error.link = storePageRes.message;
+  const firstError = storePageRes.find((v) => v instanceof AppwriteException);
+
+  if (firstError) {
+    const exception = firstError as AppwriteException;
+    submission.error.link = exception.message;
     return { submission };
   }
 
-  return { data: screenshotUrl, submission };
+  return { data: screenshotUrls, submission };
 }
 
 function useTypedLoaderData() {
@@ -106,29 +117,53 @@ export function RootIndexPage() {
 
   const isPagesEmpty = loaderData === null || loaderData.length === 0;
 
-  return isPagesEmpty ? (
-    <CreateNewPage
-      formComponent={
-        <NewSiteForm formProps={form.props} nameConfig={name} urlConfig={url} />
-      }
-    />
-  ) : (
-    <main className="px-6 py-3">
-      <Heading className="pb-8 text-xl">All Pages</Heading>
-      <div className="flex gap-x-4 flex-wrap gap-y-4">
-        {loaderData.map(({ url, id, name, originalUrl }) => {
-          return (
-            <ScreenshotImageLink
-              url={url}
-              key={id}
-              name={name}
-              originalUrl={originalUrl}
-              id={id}
-            />
-          );
-        })}
-      </div>
-    </main>
+  // return isPagesEmpty ? (
+  //   <CreateNewPage
+  //     formComponent={
+  //       <NewSiteForm formProps={form.props} nameConfig={name} urlConfig={url} />
+  //     }
+  //   />
+  // ) : (
+  //   <main className="px-6 py-3">
+  //     <Heading className="pb-8 text-xl">All Pages</Heading>
+  //     <div className="flex gap-x-4 flex-wrap gap-y-4">
+  //       {loaderData.map(({ url, id, name, originalUrl }) => {
+  //         return (
+  //           <ScreenshotImageLink
+  //             url={url}
+  //             key={id}
+  //             name={name}
+  //             originalUrl={originalUrl}
+  //             id={id}
+  //           />
+  //         );
+  //       })}
+  //     </div>
+  //   </main>
+  // );
+
+  return (
+    <div>
+      <CreateNewPage
+        formComponent={
+          <NewSiteForm
+            formProps={form.props}
+            nameConfig={name}
+            urlConfig={url}
+          />
+        }
+      />
+      <Separator />
+
+      <section className="px-6 py-3">
+        <Heading className="pb-8 text-xl">All Pages</Heading>
+        <div className="flex gap-x-4 flex-wrap gap-y-4">
+          {loaderData?.map((page) => {
+            return <ScreenshotImageLink screenshotPage={page} />;
+          })}
+        </div>
+      </section>
+    </div>
   );
 }
 
@@ -137,5 +172,5 @@ type CreatePageProps = {
 };
 
 function CreateNewPage({ formComponent }: CreatePageProps) {
-  return <main className="grid place-items-center py-48">{formComponent}</main>;
+  return <main className="py-12 grid place-items-center">{formComponent}</main>;
 }

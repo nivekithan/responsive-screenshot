@@ -1,7 +1,4 @@
-import {
-  RealTimeIssue,
-  resolveIssueSchema,
-} from "@/components/realtimeIssues";
+import { RealTimeIssue, resolveIssueSchema } from "@/components/realtimeIssues";
 import {
   ScreenshotFloatingWidget,
   updateScreenshotVersionSchema,
@@ -33,9 +30,9 @@ import { z } from "zod";
 const ParamsSchema = z.object({ pageId: z.string() });
 
 export async function loader({ params, request }: LoaderFunctionArgs) {
-  const user = await getCurrentUser();
+  const userRes = await getCurrentUser();
 
-  if (!user.valid) {
+  if (!userRes.valid) {
     const redirectUrl = getLoginUrl(request.url);
     throw redirect(redirectUrl.toString());
   }
@@ -46,17 +43,19 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
   const pagePromise = getPage({ id: pageId });
   const pageAccessEmailsPromise = getPageAccessEmails(pageId);
 
-  const [page, pageAccessEmails] = await Promise.all([
+  const [pageRes, pageAccessEmails] = await Promise.all([
     pagePromise,
     pageAccessEmailsPromise,
   ]);
 
-  if (!page.valid) {
+  if (!pageRes.valid) {
     // TODO: DO Error handling
     throw redirect("/");
   }
 
-  return { page: page.page, pageAccessEmails };
+  const isPageOwner = pageRes.page.createdBy === userRes.user.$id;
+
+  return { page: pageRes.page, pageAccessEmails, isPageOwner };
 }
 
 export async function action({ request, params }: ActionFunctionArgs) {
@@ -131,7 +130,7 @@ function useTypedLoader() {
 }
 
 export function ScreenshotPage() {
-  const { page, pageAccessEmails } = useTypedLoader();
+  const { page, pageAccessEmails, isPageOwner } = useTypedLoader();
   const pageIssueContainer = useRef<HTMLDivElement | null>(null);
 
   const scrollToBottomIssue = useCallback(() => {
@@ -154,6 +153,7 @@ export function ScreenshotPage() {
           <ScreenshotFloatingWidget
             page={page}
             pageAccessEmails={pageAccessEmails}
+            isOwner={isPageOwner}
           />
         </div>
       </div>

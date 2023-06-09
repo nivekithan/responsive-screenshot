@@ -11,11 +11,13 @@ export const updateScreenshotVersionSchema = z.object({
 export type ScreenshotFloatingWidgetProps = {
   page: PageModel;
   pageAccessEmails: PageAccessEmailModel | undefined;
+  isOwner: boolean;
 };
 
 export function ScreenshotFloatingWidget({
   page,
   pageAccessEmails,
+  isOwner,
 }: ScreenshotFloatingWidgetProps) {
   const navigation = useNavigation();
   const isNewScreenshotGenerating = navigation.state === "submitting";
@@ -32,24 +34,28 @@ export function ScreenshotFloatingWidget({
           Go to screenshot page
         </a>
       </Button>
-      <Form method="post">
-        <Button
-          size="sm"
-          variant="outline"
-          type="submit"
-          name="updateScreenshotVersion"
-          value="true"
-          disabled={isNewScreenshotGenerating}
-        >
-          {isNewScreenshotGenerating
-            ? "Generating new screenshot..."
-            : "Generate new screenshot"}
-        </Button>
-      </Form>
-      <ShareScreenShotLinkDialog
-        pageAccessEmails={pageAccessEmails}
-        pageId={page.id}
-      />
+      {isOwner ? (
+        <>
+          <Form method="post">
+            <Button
+              size="sm"
+              variant="outline"
+              type="submit"
+              name="updateScreenshotVersion"
+              value="true"
+              disabled={isNewScreenshotGenerating}
+            >
+              {isNewScreenshotGenerating
+                ? "Generating new screenshot..."
+                : "Generate new screenshot"}
+            </Button>
+          </Form>
+          <ShareScreenShotLinkDialog
+            pageAccessEmails={pageAccessEmails}
+            pageId={page.id}
+          />
+        </>
+      ) : null}
     </div>
   );
 }

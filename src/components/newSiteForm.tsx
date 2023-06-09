@@ -1,4 +1,4 @@
-import { Form, FormProps } from "react-router-dom";
+import { Form, FormProps, useNavigation } from "react-router-dom";
 import {
   Card,
   CardContent,
@@ -23,6 +23,10 @@ export function NewSiteForm({
   urlConfig,
   nameConfig,
 }: NewSiteFormProps) {
+  const navigation = useNavigation();
+
+  const isFormSubmitting = navigation.state === "submitting";
+
   return (
     <Card>
       <CardHeader>
@@ -49,8 +53,10 @@ export function NewSiteForm({
           />
         </CardContent>
         <CardFooter>
-          <Button type="submit" className="w-full">
-            Generate Screenshot
+          <Button type="submit" className="w-full" disabled={isFormSubmitting}>
+            {isFormSubmitting
+              ? "Generating screenshots..."
+              : "Generate Screenshot"}
           </Button>
         </CardFooter>
       </Form>

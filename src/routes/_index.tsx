@@ -65,7 +65,8 @@ export async function action({ request }: ActionFunctionArgs) {
   const name = submission.value.name;
   const screenshotUrls = await generateScreenshotFn(
     url,
-    `${new Date().getTime()}`
+    // `${new Date().getTime()}`
+    `1686224390442`
   );
 
   const storePageRes = await Promise.all(

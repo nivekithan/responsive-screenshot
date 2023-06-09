@@ -5,6 +5,8 @@ const PageCommentSchema = z.object({
   pageId: z.string(),
   comment: z.string(),
   $createdAt: z.string(),
+  createdByEmail: z.string(),
+  createdBy: z.string(),
 });
 
 export function convertPageCommentModel(pageComment: unknown) {
@@ -15,6 +17,8 @@ export function convertPageCommentModel(pageComment: unknown) {
     pageId: payload.pageId,
     comment: payload.comment,
     createdAt: payload.$createdAt,
+    createdBy: payload.createdBy,
+    createdByEmail: payload.createdByEmail,
   };
 }
 

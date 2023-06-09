@@ -92,6 +92,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
       pageId: parsedParams.pageId,
       comment: submission.value.comment,
       userId: userRes.user.$id,
+      userEmail: userRes.user.email,
     });
     return submission;
   } else if ("updateScreenshotVersion" in submission.value) {
@@ -152,7 +153,7 @@ export function ScreenshotPage() {
           />
         </div>
       </div>
-      <div className="flex-grow-0 flex-shrink-0 basis-1/3 h-screen-minus-nav relative border-l px-2 overflow-y-auto">
+      <div className="flex-grow-0 flex-shrink-0 basis-1/4 h-screen-minus-nav relative border-l px-2 overflow-y-auto">
         <div
           className="h-screen-minus-nav-2 overflow-y-auto"
           ref={pageCommentContainer}

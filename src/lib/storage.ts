@@ -205,18 +205,21 @@ export type StoreCommentArgs = {
   comment: string;
   pageId: string;
   userId: string;
+  userEmail: string;
 };
 
 export async function storeComment({
   comment,
   pageId,
   userId,
+  userEmail,
 }: StoreCommentArgs) {
   const insertedDocument = await databases
     .createDocument(DATABASE_ID, collections.PAGE_COMMENTS, ID.unique(), {
       pageId,
       comment,
       createdBy: userId,
+      createdByEmail: userEmail,
     })
     .catch((err: AppwriteException) => err);
 

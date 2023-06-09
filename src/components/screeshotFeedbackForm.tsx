@@ -75,7 +75,7 @@ export function ScreenshotFeedbackForm({
         <Input
           type="text"
           className="flex-grow"
-          placeholder="Comment to send..."
+          placeholder="Issue to send..."
           {...conform.input(comment)}
           defaultValue={undefined}
         />

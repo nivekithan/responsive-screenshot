@@ -7,7 +7,11 @@ import {
   Role,
 } from "appwrite";
 import { avatars, databases, secureGetPage } from "./appwrite";
-import { ErrorReasons, isDocumentNotFoundException } from "./utils";
+import {
+  ErrorReasons,
+  ONE_MONTH_IN_MS,
+  isDocumentNotFoundException,
+} from "./utils";
 import {
   PageModel,
   convertPageAccessEmailModel,
@@ -15,6 +19,8 @@ import {
   convertPageModel,
 } from "./convert";
 import pRetry from "p-retry";
+import { cachified } from "cachified";
+import { cache, getPagesCacheKey, invalidatePagesCache } from "./cache";
 
 export const DATABASE_ID = "dev";
 export const collections = {
@@ -24,7 +30,7 @@ export const collections = {
   USER_WEBHOOK_URL: "648046bd24a66d4b1503",
 };
 
-export async function getPages() {
+async function getPagesImpl() {
   const pages = await databases
     .listDocuments(DATABASE_ID, collections.PAGES, [
       Query.limit(100),
@@ -36,6 +42,23 @@ export async function getPages() {
     return pages;
   }
   return pages.documents.map(convertPageModel);
+}
+
+export async function getPages() {
+  const pagesRes = await cachified({
+    cache,
+    key: getPagesCacheKey(),
+    async getFreshValue() {
+      return getPagesImpl();
+    },
+    ttl: ONE_MONTH_IN_MS,
+  });
+
+  if (pagesRes instanceof AppwriteException) {
+    invalidatePagesCache();
+  }
+
+  return pagesRes;
 }
 
 export type GetPageProps = {
@@ -121,6 +144,8 @@ export async function storePage({
     },
     { retries: 3 }
   ).catch((err: AppwriteException) => err);
+
+  invalidatePagesCache();
 
   return insertedPage;
 }

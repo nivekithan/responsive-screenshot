@@ -2,6 +2,7 @@ import { AppwriteException, ID, Models } from "appwrite";
 import { account } from "./appwrite";
 import {
   ErrorReasons,
+  ONE_MONTH_IN_MS,
   isUserAlreadyExistsException,
   isUserInvalidCreditanilsException,
 } from "./utils";
@@ -89,6 +90,7 @@ export async function getCurrentUser() {
     async getFreshValue() {
       return getCurrentUserImpl();
     },
+    ttl: ONE_MONTH_IN_MS,
   });
 
   if (!userRes.valid) {

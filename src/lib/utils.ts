@@ -48,3 +48,5 @@ export function getSignUpUrl(currentUrl: string) {
 
   return url;
 }
+
+export const ONE_MONTH_IN_MS = 1000 * 60 * 60 * 24 * 7 * 30;

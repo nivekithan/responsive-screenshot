@@ -2,14 +2,21 @@ import { useSyncPageComments } from "@/lib/pageCommentStore";
 import { useEffect } from "react";
 import { Button } from "./ui/button";
 import { Separator } from "./ui/separator";
+import { useFetcher } from "react-router-dom";
+import { z } from "zod";
 
 export type RealTimeComments = {
   pageId: string;
   scrollToBottom: () => void;
 };
 
+export const resolveIssueSchema = z.object({
+  resolveIssue: z.string().nonempty(),
+});
+
 export function RealTimeComments({ pageId, scrollToBottom }: RealTimeComments) {
   const pageComments = useSyncPageComments(pageId);
+  const resolveIssueFetcher = useFetcher();
 
   useEffect(() => {
     scrollToBottom();
@@ -26,12 +33,16 @@ export function RealTimeComments({ pageId, scrollToBottom }: RealTimeComments) {
             <h3 className="text-sm font-bold">{comment.createdByEmail}</h3>
             <p>{comment.comment}</p>
             <Separator />
-            <Button
-              variant="secondary"
-              className="border hover:border-foreground/50"
-            >
-              Resolve
-            </Button>
+            <resolveIssueFetcher.Form method="post">
+              <Button
+                variant="secondary"
+                className="border hover:border-foreground/50 w-full"
+                name="resolveIssue"
+                value={comment.id}
+              >
+                Resolve
+              </Button>
+            </resolveIssueFetcher.Form>
           </div>
         );
       })}

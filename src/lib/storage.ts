@@ -215,12 +215,18 @@ export async function storeComment({
   userEmail,
 }: StoreCommentArgs) {
   const insertedDocument = await databases
-    .createDocument(DATABASE_ID, collections.PAGE_COMMENTS, ID.unique(), {
-      pageId,
-      comment,
-      createdBy: userId,
-      createdByEmail: userEmail,
-    })
+    .createDocument(
+      DATABASE_ID,
+      collections.PAGE_COMMENTS,
+      ID.unique(),
+      {
+        pageId,
+        comment,
+        createdBy: userId,
+        createdByEmail: userEmail,
+      },
+      [Permission.delete(Role.user(userId))]
+    )
     .catch((err: AppwriteException) => err);
 
   if (insertedDocument instanceof AppwriteException) {
@@ -250,6 +256,20 @@ export async function getPageComments({ pageId }: GetPageCommentsArgs) {
     .reverse();
 
   return commentModelList;
+}
+
+export type DeleteIssueArgs = {
+  issueId: string;
+};
+
+export async function deleteIssue({ issueId }: DeleteIssueArgs) {
+  const deletedDoc = await databases.deleteDocument(
+    DATABASE_ID,
+    collections.PAGE_COMMENTS,
+    issueId
+  );
+
+  return deleteIssue;
 }
 
 export async function getPageAccessEmails(pageId: string) {

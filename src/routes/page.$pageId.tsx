@@ -1,4 +1,7 @@
-import { RealTimeComments } from "@/components/realtimeComments";
+import {
+  RealTimeComments,
+  resolveIssueSchema,
+} from "@/components/realtimeComments";
 import {
   ScreenshotFloatingWidget,
   updateScreenshotVersionSchema,
@@ -11,6 +14,7 @@ import {
 import { generateScreenshotFn } from "@/lib/appwrite";
 import { getCurrentUser } from "@/lib/auth";
 import {
+  deleteIssue,
   getApprovalStatus,
   getPageAccessEmails,
   setApprovalStatus,
@@ -73,6 +77,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
       updateApprovalStatusSchema,
       addCommentSchema,
       updateScreenshotVersionSchema,
+      resolveIssueSchema,
     ]),
   });
 
@@ -119,6 +124,11 @@ export async function action({ request, params }: ActionFunctionArgs) {
     }
 
     await updatePageUrl({ pageId: page.id, url: currentPageScreenshot?.url });
+
+    return submission;
+  } else if ("resolveIssue" in submission.value) {
+    const resolveIssueId = submission.value.resolveIssue;
+    await deleteIssue({ issueId: resolveIssueId });
 
     return submission;
   }

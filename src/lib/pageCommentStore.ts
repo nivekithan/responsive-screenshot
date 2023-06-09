@@ -7,15 +7,18 @@ import { orderBy } from "natural-orderby";
 type SubscribeToPageCommentsArgs = {
   pageId: string;
   onNewPageComment: (commentModel: CommentModel) => void;
+  onCommentDelete: (commentModel: CommentModel) => void;
 };
 
 function subscribeToPageComments({
   pageId,
   onNewPageComment,
+  onCommentDelete,
 }: SubscribeToPageCommentsArgs) {
   const pageCommentsChannelName = `databases.${DATABASE_ID}.collections.${collections.PAGE_COMMENTS}.documents`;
   const unsubscribe = subscribe(pageCommentsChannelName, (realtimeEvent) => {
     const pageCommentsCreateDocumentEvent = `${pageCommentsChannelName}.*.create`;
+    const pageCommentsDeleteDocumentEvent = `${pageCommentsChannelName}.*.delete`;
 
     if (realtimeEvent.events.includes(pageCommentsCreateDocumentEvent)) {
       const newlyCreatedPageComment = convertPageCommentModel(
@@ -24,6 +27,12 @@ function subscribeToPageComments({
 
       if (newlyCreatedPageComment.pageId === pageId) {
         onNewPageComment(newlyCreatedPageComment);
+      }
+    } else if (realtimeEvent.events.includes(pageCommentsDeleteDocumentEvent)) {
+      const deletedComment = convertPageCommentModel(realtimeEvent.payload);
+
+      if (deletedComment.pageId === pageId) {
+        onCommentDelete(deletedComment);
       }
     }
   });
@@ -48,8 +57,11 @@ function syncPageComments(pageId: string): SyncSubscribe {
     const unsubscribeWithAppwrite = subscribeToPageComments({
       pageId,
       onNewPageComment(newComment) {
-        console.log({ newComment });
         pageIdCommentStore.addRealtimeComment(newComment);
+        onStoreChange();
+      },
+      onCommentDelete(commentModel) {
+        pageIdCommentStore.deleteComment(commentModel.id);
         onStoreChange();
       },
     });
@@ -151,6 +163,17 @@ class PageIdCommentStore {
 
     this.comments.push(comment);
     this.comments = orderBy(this.comments, (v) => v.createdAt, "asc");
+  }
+
+  deleteComment(commentId: string) {
+    const commentIndex = this.comments.findIndex((v) => v.id === commentId);
+
+    if (commentIndex === -1) {
+      return;
+    }
+
+    this.comments.splice(commentIndex, 1);
+    this.comments = [...this.comments];
   }
 }
 

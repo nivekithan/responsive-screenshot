@@ -54,7 +54,7 @@ export async function loader({ params }: LoaderFunctionArgs) {
     throw redirect("/");
   }
 
-  return { page: page.page, status: status, pageAccessEmails };
+  return { page: page.page, pageAccessEmails };
 }
 
 export async function action({ request, params }: ActionFunctionArgs) {
@@ -128,7 +128,7 @@ function useTypedLoader() {
 }
 
 export function ScreenshotPage() {
-  const { page, status, pageAccessEmails } = useTypedLoader();
+  const { page, pageAccessEmails } = useTypedLoader();
   const pageCommentContainer = useRef<HTMLDivElement | null>(null);
 
   const scrollCommentToBottom = useCallback(() => {
@@ -142,7 +142,11 @@ export function ScreenshotPage() {
   return (
     <main className="flex bg-background">
       <div className="grid place-items-center max-h-screen-minus-nav overflow-y-auto flex-grow px-10 bg-gray-300 bg-opacity-20 ">
-        <img alt={`${page.name} of ${page.url}`} src={page.url} />
+        <img
+          alt={`${page.name} of ${page.url}`}
+          src={page.url}
+          key={page.url}
+        />
         <div className="fixed bottom-5 ">
           <ScreenshotFloatingWidget
             page={page}

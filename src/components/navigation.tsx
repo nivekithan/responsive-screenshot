@@ -1,4 +1,4 @@
-import { Form } from "react-router-dom";
+import { Form, Link } from "react-router-dom";
 import { Button } from "./ui/button";
 import { Separator } from "./ui/separator";
 
@@ -10,9 +10,12 @@ export function Navigation({ showSlackInstallButton }: NavigationProps) {
   return (
     <div>
       <nav className="flex justify-between px-6 py-3 items-center">
-        <h1 className="text-lg font-semibold leading-none tracking-tight">
+        <Link
+          to="/"
+          className="text-lg font-semibold leading-none tracking-tight"
+        >
           Responsive Screenshots
-        </h1>
+        </Link>
         <div className="flex gap-x-3">
           {showSlackInstallButton ? (
             <a href="https://slack.com/oauth/v2/authorize?client_id=4692604248164.5385506506290&scope=incoming-webhook&user_scope=">

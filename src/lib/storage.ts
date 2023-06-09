@@ -23,6 +23,7 @@ import { cachified } from "cachified";
 import {
   cache,
   getPagesCacheKey,
+  getSinglePageAccessCacheKey,
   getSinglePageCacheKey,
   getSinglePageNameCacheKey,
   invalidatePagesCache,
@@ -294,14 +295,29 @@ export async function deleteIssue({ issueId }: DeleteIssueArgs) {
   return deletedDoc;
 }
 
-export async function getPageAccessEmails(pageId: string) {
+async function getPageAccessEmailsImpl(pageId: string) {
   const documents = await databases.listDocuments(
     DATABASE_ID,
     collections.PAGE_ACCESS_EMAILS,
     [Query.equal("pageId", pageId)]
   );
 
-  return documents.documents.map(convertPageAccessEmailModel)[0];
+  return documents.documents.map(convertPageAccessEmailModel)[0] as
+    | ReturnType<typeof convertPageAccessEmailModel>
+    | undefined;
+}
+
+export async function getPageAccessEmails(pageId: string) {
+  const value = cachified({
+    cache,
+    ttl: ONE_MONTH_IN_MS,
+    key: getSinglePageAccessCacheKey(pageId),
+    async getFreshValue() {
+      return getPageAccessEmailsImpl(pageId);
+    },
+  });
+
+  return value;
 }
 
 export async function createPageAccessEmails(

@@ -10,7 +10,7 @@ export const updateScreenshotVersionSchema = z.object({
 
 export type ScreenshotFloatingWidgetProps = {
   page: PageModel;
-  pageAccessEmails: PageAccessEmailModel;
+  pageAccessEmails: PageAccessEmailModel | undefined;
 };
 
 export function ScreenshotFloatingWidget({

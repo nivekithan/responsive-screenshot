@@ -77,6 +77,7 @@ export function ShareScreenShotLinkDialog({
   const revalidator = useRevalidator();
   const [error, setError] = useState<string>();
   const [open, setOpen] = useState(false);
+  const [isFormSubmitting, setIsFormSubmitting] = useState(false);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -152,6 +153,7 @@ export function ShareScreenShotLinkDialog({
         <DialogFooter className="flex">
           <Button
             onClick={async () => {
+              setIsFormSubmitting(true);
               if (pageAccessEmails) {
                 await updatePageAccessEmails(
                   pageAccessEmails.id,
@@ -161,14 +163,16 @@ export function ShareScreenShotLinkDialog({
                 await createPageAccessEmails(pageId, shareWithEmails);
               }
               revalidator.revalidate();
+              setIsFormSubmitting(false);
               setOpen(false);
               navigator.clipboard.writeText(`${window.location.href}`);
               toast({ description: "Url is copied to your clipboard" });
             }}
             type="button"
             className="w-full"
+            disabled={isFormSubmitting}
           >
-            Share
+            {isFormSubmitting ? "Sharing access..." : "Share Access"}
           </Button>
         </DialogFooter>
       </DialogContent>

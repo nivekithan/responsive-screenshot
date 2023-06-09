@@ -1,4 +1,4 @@
-import { Link, Form, FormProps } from "react-router-dom";
+import { Link, Form, FormProps, useNavigation } from "react-router-dom";
 import { Button } from "./ui/button";
 import {
   Card,
@@ -57,16 +57,14 @@ export function AuthForm({
           />
         </CardContent>
         <CardFooter>
-          <Button type="submit" className="w-full">
-            Sign In
-          </Button>
+          {authAction === "login" ? <LoginButton /> : <SignUpButton />}
         </CardFooter>
       </Form>
     </Card>
   );
 }
 
-export const SignUpCardDescription = () => {
+const SignUpCardDescription = () => {
   return (
     <CardHeader>
       <CardTitle>Sign up to Responsive Screenshot</CardTitle>
@@ -80,7 +78,7 @@ export const SignUpCardDescription = () => {
   );
 };
 
-export const LogInCardDescription = () => {
+const LogInCardDescription = () => {
   return (
     <CardHeader>
       <CardTitle>Login to Responsive Screenshot</CardTitle>
@@ -93,3 +91,25 @@ export const LogInCardDescription = () => {
     </CardHeader>
   );
 };
+
+function LoginButton() {
+  const navigation = useNavigation();
+  const isLoggingIn = navigation.state === "submitting";
+
+  return (
+    <Button type="submit" className="w-full" disabled={isLoggingIn}>
+      {isLoggingIn ? "Logging in..." : "Login"}
+    </Button>
+  );
+}
+
+function SignUpButton() {
+  const navigation = useNavigation();
+  const isSigingUp = navigation.state === "submitting";
+
+  return (
+    <Button type="submit" className="w-full" disabled={isSigingUp}>
+      {isSigingUp ? "Signing up..." : "Sign up"}
+    </Button>
+  );
+}

@@ -24,8 +24,10 @@ import {
   cache,
   getPagesCacheKey,
   getSinglePageCacheKey,
+  getSinglePageNameCacheKey,
   invalidatePagesCache,
   invalidateSinglePageCache,
+  invalidateSinglePageNameKey,
 } from "./cache";
 
 export const DATABASE_ID = "dev";
@@ -115,8 +117,6 @@ export async function getPage({ id }: GetPageProps): Promise<GetPageRes> {
     });
   });
 
-  console.log({ page });
-
   if (page instanceof AppwriteException && isDocumentNotFoundException(page)) {
     return { valid: false, reason: ErrorReasons.pageNotFound };
   }
@@ -176,6 +176,7 @@ export async function storePage({
   ).catch((err: AppwriteException) => err);
 
   invalidatePagesCache();
+  invalidateSinglePageNameKey(name);
 
   return insertedPage;
 }
@@ -198,7 +199,7 @@ export async function updatePageUrl({ url, pageId }: UpdatePageUrlArgs) {
   return updatedPage;
 }
 
-export async function isPageNameUnique(name: string) {
+async function isPageNameUniqueImpl(name: string) {
   const docList = await databases.listDocuments(
     DATABASE_ID,
     collections.PAGES,
@@ -206,6 +207,20 @@ export async function isPageNameUnique(name: string) {
   );
 
   return docList.total === 0;
+}
+
+export async function isPageNameUnique(name: string) {
+  const isUnique = await cachified({
+    key: getSinglePageNameCacheKey(name),
+    ttl: ONE_MONTH_IN_MS,
+    cache,
+
+    async getFreshValue() {
+      return isPageNameUniqueImpl(name);
+    },
+  });
+
+  return isUnique;
 }
 
 export type StoreIssueArgs = {

@@ -7,6 +7,7 @@ const cachePrefix = {
   user: "user",
   pages: "pages",
   singlePage: "singlePage",
+  pageName: "pageName",
 };
 
 let userCacheKey: string | null = null;
@@ -54,4 +55,26 @@ export function getSinglePageCacheKey(pageId: string) {
 
 export function invalidateSinglePageCache(pageId: string) {
   globalSinglePagesCacheKey.set(pageId, `${new Date().getTime()}`);
+}
+
+const globalPageNameKey: Map<string, string> = new Map();
+
+export function getSinglePageNameCacheKey(nameOfPage: string) {
+  const mayBepageKey = globalPageNameKey.get(nameOfPage);
+
+  if (mayBepageKey === undefined) {
+    globalPageNameKey.set(nameOfPage, `${new Date().getTime()}`);
+  }
+
+  const pageKey = globalPageNameKey.get(nameOfPage);
+
+  if (pageKey === undefined) {
+    throw new Error("Unreachable");
+  }
+
+  return `${cachePrefix.pageName}-${nameOfPage}-${pageKey}`;
+}
+
+export function invalidateSinglePageNameKey(nameOfPage: string) {
+  globalPageNameKey.set(nameOfPage, `${new Date().getTime()}`);
 }

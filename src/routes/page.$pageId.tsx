@@ -19,6 +19,7 @@ import {
   updatePageUrl,
 } from "@/lib/storage";
 import { getPage } from "@/lib/storage";
+import { getLoginUrl } from "@/lib/utils";
 import { parse } from "@conform-to/zod";
 import { useCallback, useRef } from "react";
 import {
@@ -31,11 +32,12 @@ import { z } from "zod";
 
 const ParamsSchema = z.object({ pageId: z.string() });
 
-export async function loader({ params }: LoaderFunctionArgs) {
+export async function loader({ params, request }: LoaderFunctionArgs) {
   const user = await getCurrentUser();
 
   if (!user.valid) {
-    throw redirect("/login", { status: 400 });
+    const redirectUrl = getLoginUrl(request.url);
+    throw redirect(redirectUrl.toString());
   }
 
   const parsedParams = ParamsSchema.parse(params);
@@ -62,7 +64,8 @@ export async function action({ request, params }: ActionFunctionArgs) {
   const parsedParams = ParamsSchema.parse(params);
 
   if (!userRes.valid) {
-    throw redirect("/login", { status: 400 });
+    const redirectUrl = getLoginUrl(request.url);
+    throw redirect(redirectUrl.toString());
   }
 
   const formData = await request.formData();

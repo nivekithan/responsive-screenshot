@@ -9,6 +9,7 @@ import {
   CardFooter,
 } from "./ui/card";
 import { LabeledInput } from "./ui/labeledInput";
+import { getLoginUrl, getSignUpUrl } from "@/lib/utils";
 
 export type AuthFormProps = {
   authAction: "login" | "signUp";
@@ -20,6 +21,8 @@ export type AuthFormProps = {
   passwordError?: string;
 
   formProps: FormProps;
+
+  redirectTo?: string;
 };
 
 export function AuthForm({
@@ -29,13 +32,14 @@ export function AuthForm({
   emailError,
   passwordError,
   authAction,
+  redirectTo,
 }: AuthFormProps) {
   return (
     <Card className="w-[400px]">
       {authAction === "login" ? (
-        <LogInCardDescription />
+        <LogInCardDescription redirectTo={redirectTo} />
       ) : (
-        <SignUpCardDescription />
+        <SignUpCardDescription redirectTo={redirectTo} />
       )}
       <Form method="post" {...formProps}>
         <CardContent>
@@ -64,13 +68,14 @@ export function AuthForm({
   );
 }
 
-const SignUpCardDescription = () => {
+const SignUpCardDescription = ({ redirectTo }: { redirectTo?: string }) => {
+  const loginUrl = redirectTo ? getLoginUrl(redirectTo).toString() : "/login";
   return (
     <CardHeader>
       <CardTitle>Sign up to Responsive Screenshot</CardTitle>
       <CardDescription>
         Already have an account ? Then{" "}
-        <Link to="/login" className="hover:underline text-accent-foreground">
+        <Link to={loginUrl} className="hover:underline text-accent-foreground">
           Log In
         </Link>
       </CardDescription>
@@ -78,13 +83,16 @@ const SignUpCardDescription = () => {
   );
 };
 
-const LogInCardDescription = () => {
+const LogInCardDescription = ({ redirectTo }: { redirectTo?: string }) => {
+  const signUpUrl = redirectTo
+    ? getSignUpUrl(redirectTo).toString()
+    : "/signup";
   return (
     <CardHeader>
       <CardTitle>Login to Responsive Screenshot</CardTitle>
       <CardDescription>
         Don't have an account ? Then create new one by{" "}
-        <Link to="/signUp" className="hover:underline text-accent-foreground">
+        <Link to={signUpUrl} className="hover:underline text-accent-foreground">
           Sign Up
         </Link>
       </CardDescription>

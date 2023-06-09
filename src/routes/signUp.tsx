@@ -1,18 +1,25 @@
-import { ActionFunctionArgs, redirect, useActionData } from "react-router-dom";
+import {
+  ActionFunctionArgs,
+  LoaderFunctionArgs,
+  redirect,
+  useActionData,
+  useLoaderData,
+} from "react-router-dom";
 import { z } from "zod";
 import { parse } from "@conform-to/zod";
 import { useForm } from "@conform-to/react";
 import { getCurrentUser, loginUser, signUpUser } from "@/lib/auth";
 import { AuthForm } from "@/components/authForm";
 
-export async function loader() {
+export async function loader({ request }: LoaderFunctionArgs) {
   const user = await getCurrentUser();
+  const redirectTo = new URL(request.url).searchParams.get("redirectTo");
 
   if (user.valid) {
     throw redirect("/");
   }
 
-  return null;
+  return redirectTo;
 }
 
 const SignUpActionSchema = z.object({
@@ -64,13 +71,20 @@ export async function action({ request }: ActionFunctionArgs) {
   return submission;
 }
 
-export function useTypedActionData() {
+function useTypedActionData() {
   const submission = useActionData();
 
   return submission as Awaited<ReturnType<typeof action>> | undefined;
 }
 
+function useTypedLoaderData() {
+  const loadertData = useLoaderData();
+
+  return loadertData as Awaited<ReturnType<typeof loader>>;
+}
+
 export function SignUpPage() {
+  const redirectTo = useTypedLoaderData();
   const lastSubmission = useTypedActionData();
   const [form, { email, password }] = useForm({
     lastSubmission,
@@ -90,6 +104,7 @@ export function SignUpPage() {
         formProps={formProps}
         passwordName={password.name}
         emailError={email.error}
+        redirectTo={redirectTo || undefined}
       />
     </main>
   );

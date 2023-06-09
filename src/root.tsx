@@ -1,4 +1,5 @@
 import {
+  LoaderFunctionArgs,
   Outlet,
   ScrollRestoration,
   redirect,
@@ -8,12 +9,14 @@ import { getCurrentUser } from "./lib/auth";
 import { Navigation } from "./components/navigation";
 import { Toaster } from "./components/ui/toaster";
 import { isSlackAppInstalled } from "./lib/storage";
+import { getLoginUrl } from "./lib/utils";
 
-export async function loader() {
+export async function loader({ request }: LoaderFunctionArgs) {
   const userRes = await getCurrentUser();
 
   if (!userRes.valid) {
-    throw redirect("/login");
+    const redirectUrl = getLoginUrl(request.url);
+    throw redirect(redirectUrl.toString());
   }
 
   const hasSlackAppInstalled = await isSlackAppInstalled({

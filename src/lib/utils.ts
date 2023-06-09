@@ -32,3 +32,19 @@ export const ErrorReasons = {
     "There is already a user with the same email. Please choose another one",
   pageNotFound: "There is no page with that id",
 } as const;
+
+export function getLoginUrl(currentUrl: string) {
+  const url = new URL("/login", window.location.origin);
+
+  url.searchParams.set("redirectTo", currentUrl);
+
+  return url;
+}
+
+export function getSignUpUrl(currentUrl: string) {
+  const url = new URL("/signup", window.location.origin);
+
+  url.searchParams.set("redirectTo", currentUrl);
+
+  return url;
+}

@@ -6,23 +6,26 @@ import { generateScreenshotFn } from "@/lib/appwrite";
 import { getCurrentUser } from "@/lib/auth";
 import { PageModel } from "@/lib/convert";
 import { getPages, storePage } from "@/lib/storage";
+import { getLoginUrl } from "@/lib/utils";
 import { useForm } from "@conform-to/react";
 import { parse } from "@conform-to/zod";
 import { AppwriteException } from "appwrite";
 import * as React from "react";
 import {
   ActionFunctionArgs,
+  LoaderFunctionArgs,
   redirect,
   useActionData,
   useLoaderData,
 } from "react-router-dom";
 import { z } from "zod";
 
-export async function loader() {
+export async function loader({ request }: LoaderFunctionArgs) {
   const user = await getCurrentUser();
 
   if (!user.valid) {
-    throw redirect("/login");
+    const redirectUrl = getLoginUrl(request.url);
+    throw redirect(redirectUrl.toString());
   }
 
   const pages = await getPages();
@@ -50,7 +53,8 @@ export async function action({ request }: ActionFunctionArgs) {
   const userRes = await getCurrentUser();
 
   if (!userRes.valid) {
-    throw redirect("/login");
+    const redirectUrl = getLoginUrl(request.url);
+    throw redirect(redirectUrl.toString(), );
   }
   const user = userRes.user;
 

@@ -9,15 +9,12 @@ import {
 import {
   ScreenshotFeedbackForm,
   addCommentSchema,
-  updateApprovalStatusSchema,
 } from "@/components/screeshotFeedbackForm";
 import { generateScreenshotFn } from "@/lib/appwrite";
 import { getCurrentUser } from "@/lib/auth";
 import {
   deleteIssue,
-  getApprovalStatus,
   getPageAccessEmails,
-  setApprovalStatus,
   storeComment,
   updatePageUrl,
 } from "@/lib/storage";
@@ -45,12 +42,10 @@ export async function loader({ params }: LoaderFunctionArgs) {
   const pageId = parsedParams.pageId;
 
   const pagePromise = getPage({ id: pageId });
-  const statusPromise = getApprovalStatus({ pageId });
   const pageAccessEmailsPromise = getPageAccessEmails(pageId);
 
-  const [page, status, pageAccessEmails] = await Promise.all([
+  const [page, pageAccessEmails] = await Promise.all([
     pagePromise,
-    statusPromise,
     pageAccessEmailsPromise,
   ]);
 
@@ -74,7 +69,6 @@ export async function action({ request, params }: ActionFunctionArgs) {
 
   const submission = parse(formData, {
     schema: z.union([
-      updateApprovalStatusSchema,
       addCommentSchema,
       updateScreenshotVersionSchema,
       resolveIssueSchema,
@@ -85,14 +79,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
     return submission;
   }
 
-  if ("status" in submission.value) {
-    await setApprovalStatus({
-      pageId: parsedParams.pageId,
-      approvalStatus: submission.value.status,
-      userId: userRes.user.$id,
-    });
-    return submission;
-  } else if ("comment" in submission.value) {
+  if ("comment" in submission.value) {
     await storeComment({
       pageId: parsedParams.pageId,
       comment: submission.value.comment,
@@ -173,7 +160,7 @@ export function ScreenshotPage() {
             scrollToBottom={scrollCommentToBottom}
           />
         </div>
-        <ScreenshotFeedbackForm defaultStatus={status?.status} />
+        <ScreenshotFeedbackForm />
       </div>
     </main>
   );

@@ -12,7 +12,6 @@ import pRetry from "p-retry";
 export const DATABASE_ID = "dev";
 export const collections = {
   PAGES: "647b0d9310b4ac4f8256",
-  PAGE_APPROVAL_STATUS: "647c71d2cac511ce8e9b",
   PAGE_COMMENTS: "647f630632a9fb64e6ef",
   PAGE_ACCESS_EMAILS: "647f3355ed75a176dba9",
   USER_WEBHOOK_URL: "648046bd24a66d4b1503",
@@ -135,72 +134,6 @@ export async function updatePageUrl({ url, pageId }: UpdatePageUrlArgs) {
   return updatedPage;
 }
 
-export type ApprovalStatusModel = {
-  pageId: string;
-  status: "APPROVED" | "DISAPPROVED";
-  id: string;
-};
-
-export type GetApprovalStatusArgs = {
-  pageId: string;
-};
-
-export async function getApprovalStatus({
-  pageId,
-}: GetApprovalStatusArgs): Promise<ApprovalStatusModel | null> {
-  const statusList = await databases.listDocuments(
-    DATABASE_ID,
-    collections.PAGE_APPROVAL_STATUS,
-    [Query.equal("pageId", pageId)]
-  );
-
-  if (statusList.documents.length === 0) {
-    return null;
-  }
-
-  const doc = statusList.documents[0];
-
-  return { pageId: doc.pageId, id: doc.$id, status: doc.status };
-}
-
-export type StoreApprovalStatusArgs = {
-  pageId: string;
-  approvalStatus: ApprovalStatusModel["status"];
-  userId: string;
-};
-
-export async function setApprovalStatus({
-  pageId,
-  approvalStatus,
-  userId,
-}: StoreApprovalStatusArgs) {
-  // TODO: Proper error handling
-  const status = await getApprovalStatus({ pageId });
-  const isStatusPresent = status !== null;
-
-  if (!isStatusPresent) {
-    const createdStatus = await databases.createDocument(
-      DATABASE_ID,
-      collections.PAGE_APPROVAL_STATUS,
-      ID.unique(),
-      { pageId, status: approvalStatus, createdBy: userId },
-      [Permission.read(Role.user(userId)), Permission.update(Role.user(userId))]
-    );
-    return createdStatus;
-  } else {
-    const id = status.id;
-
-    const updatedStatus = await databases.updateDocument(
-      DATABASE_ID,
-      collections.PAGE_APPROVAL_STATUS,
-      id,
-      { status: approvalStatus }
-    );
-
-    return updatedStatus;
-  }
-}
-
 export type StoreCommentArgs = {
   comment: string;
   pageId: string;
@@ -269,7 +202,7 @@ export async function deleteIssue({ issueId }: DeleteIssueArgs) {
     issueId
   );
 
-  return deleteIssue;
+  return deletedDoc;
 }
 
 export async function getPageAccessEmails(pageId: string) {

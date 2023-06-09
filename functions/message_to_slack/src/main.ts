@@ -1,12 +1,12 @@
 import { z } from "zod";
-import { Client, Databases, Query, } from "node-appwrite";
+import { Client, Databases, Query } from "node-appwrite";
 import fetch from "node-fetch";
 
 const DATABASE_ID = "dev";
 
 const collections = {
   PAGES: "647b0d9310b4ac4f8256",
-  PAGE_COMMENTS: "647f630632a9fb64e6ef",
+  PAGE_ISSUE: "647f630632a9fb64e6ef",
   PAGE_ACCESS_EMAILS: "647f3355ed75a176dba9",
   USER_WEBHOOK_URL: "648046bd24a66d4b1503",
 };
@@ -18,22 +18,22 @@ const ReqSchema = z.object({
     APPWRITE_FUNCTION_EVENT: z
       .string()
       .startsWith(
-        `databases.${DATABASE_ID}.collections.${collections.PAGE_COMMENTS}.documents`
+        `databases.${DATABASE_ID}.collections.${collections.PAGE_ISSUE}.documents`
       ),
     APPWRITE_FUNCTION_EVENT_DATA: z.string(),
     ACCESS_KEY: z.string(),
   }),
 });
 
-const PageCommentsDocSchema = z.object({
+const PageIssuesDocSchema = z.object({
   $id: z.string(),
   createdBy: z.string(),
   pageId: z.string(),
-  comment: z.string(),
+  issue: z.string(),
   createdByEmail: z.string(),
 });
 
-const EventDataSchema = PageCommentsDocSchema;
+const EventDataSchema = PageIssuesDocSchema;
 
 export async function handleEvent(
   req: unknown,
@@ -70,19 +70,19 @@ export async function handleEvent(
     const { page, webhookUrl } = webhookAndImageUrl;
 
     const webhookBody = (() => {
-      if ("comment" in eventData) {
+      if ("issue" in eventData) {
         if (eventName.endsWith("create")) {
           const webhookBody = formatTextForIssueCreate({
             email,
             page,
-            comment: eventData.comment,
+            issue: eventData.issue,
           });
 
           return webhookBody;
         } else if (eventName.endsWith("delete")) {
           const webhookBody = formatTextForIssueDelete({
             email,
-            comment: eventData.comment,
+            issue: eventData.issue,
             page,
           });
 
@@ -142,12 +142,12 @@ async function getWebhookUrlAndPage(pageId: string, database: Databases) {
 type FormatTextForIssueCreateArgs = {
   email: string;
   page: z.infer<typeof PageDocSchema>;
-  comment: string;
+  issue: string;
 };
 function formatTextForIssueCreate({
   email,
   page,
-  comment,
+  issue,
 }: FormatTextForIssueCreateArgs) {
   return {
     blocks: [
@@ -157,7 +157,7 @@ function formatTextForIssueCreate({
           type: "mrkdwn",
           text: `${email} has created new isssue on <${`https://${WEBSITE_HOST}/page/${page.$id}`}|${
             page.name
-          }>:\n>${comment}`,
+          }>:\n>${issue}`,
         },
       },
       {
@@ -177,12 +177,12 @@ function formatTextForIssueCreate({
 type FormatTextForIssueDeleteArgs = {
   email: string;
   page: z.infer<typeof PageDocSchema>;
-  comment: string;
+  issue: string;
 };
 function formatTextForIssueDelete({
   email,
   page,
-  comment,
+  issue,
 }: FormatTextForIssueDeleteArgs) {
   return {
     blocks: [
@@ -192,7 +192,7 @@ function formatTextForIssueDelete({
           type: "mrkdwn",
           text: `${email} has resolved isssue on <${`https://${WEBSITE_HOST}/page/${page.$id}`}|${
             page.name
-          }>:\n>${comment}`,
+          }>:\n>${issue}`,
         },
       },
       {

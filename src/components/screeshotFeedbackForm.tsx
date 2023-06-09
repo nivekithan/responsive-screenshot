@@ -6,60 +6,60 @@ import { conform, useForm } from "@conform-to/react";
 import { z } from "zod";
 import { parse } from "@conform-to/zod";
 
-export const addCommentSchema = z.object({
-  comment: z.string(),
+export const addIssueSchema = z.object({
+  issue: z.string(),
 });
 
 export function ScreenshotFeedbackForm() {
-  const commentFetcher = useFetcher();
-  const commentFormRef = useRef<HTMLFormElement | null>();
+  const issueFetcher = useFetcher();
+  const issueFormRef = useRef<HTMLFormElement | null>();
 
-  const [addCommentForm, { comment }] = useForm({
-    lastSubmission: commentFetcher.data,
+  const [addIssueForm, { issue }] = useForm({
+    lastSubmission: issueFetcher.data,
     onValidate({ formData }) {
-      return parse(formData, { schema: addCommentSchema });
+      return parse(formData, { schema: addIssueSchema });
     },
   });
 
-  const isAddingComment = commentFetcher.state === "submitting";
+  const isAddingIssue = issueFetcher.state === "submitting";
 
   useEffect(() => {
-    if (!isAddingComment) {
-      commentFormRef.current?.reset();
+    if (!isAddingIssue) {
+      issueFormRef.current?.reset();
     }
-  }, [isAddingComment]);
+  }, [isAddingIssue]);
 
-  const addCommentFormProps = addCommentForm.props;
+  const addIssueFormProps = addIssueForm.props;
 
   return (
     <div className="h-16 flex items-center justify-center gap-x-2">
-      <commentFetcher.Form
+      <issueFetcher.Form
         method="post"
         className="flex items-center justify-center gap-x-2 flex-1 "
-        {...addCommentFormProps}
+        {...addIssueFormProps}
         ref={(e) => {
-          commentFormRef.current = e;
+          issueFormRef.current = e;
 
           // @ts-ignore
-          addCommentFormProps.ref.current = e;
+          addIssueFormProps.ref.current = e;
         }}
       >
         <Input
           type="text"
           className="flex-grow"
           placeholder="Issue to send..."
-          {...conform.input(comment)}
+          {...conform.input(issue)}
           defaultValue={undefined}
         />
         <Button
           type="submit"
           variant="default"
           className="w-24"
-          disabled={isAddingComment}
+          disabled={isAddingIssue}
         >
-          {isAddingComment ? "Sending..." : "Send"}
+          {isAddingIssue ? "Sending..." : "Send"}
         </Button>
-      </commentFetcher.Form>
+      </issueFetcher.Form>
     </div>
   );
 }

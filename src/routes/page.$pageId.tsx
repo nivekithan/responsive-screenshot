@@ -1,21 +1,21 @@
 import {
-  RealTimeComments,
+  RealTimeIssue,
   resolveIssueSchema,
-} from "@/components/realtimeComments";
+} from "@/components/realtimeIssues";
 import {
   ScreenshotFloatingWidget,
   updateScreenshotVersionSchema,
 } from "@/components/screenshotFloatingWidget";
 import {
   ScreenshotFeedbackForm,
-  addCommentSchema,
+  addIssueSchema,
 } from "@/components/screeshotFeedbackForm";
 import { generateScreenshotFn } from "@/lib/appwrite";
 import { getCurrentUser } from "@/lib/auth";
 import {
   deleteIssue,
   getPageAccessEmails,
-  storeComment,
+  storeIssue,
   updatePageUrl,
 } from "@/lib/storage";
 import { getPage } from "@/lib/storage";
@@ -72,7 +72,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
 
   const submission = parse(formData, {
     schema: z.union([
-      addCommentSchema,
+      addIssueSchema,
       updateScreenshotVersionSchema,
       resolveIssueSchema,
     ]),
@@ -82,10 +82,10 @@ export async function action({ request, params }: ActionFunctionArgs) {
     return submission;
   }
 
-  if ("comment" in submission.value) {
-    await storeComment({
+  if ("issue" in submission.value) {
+    await storeIssue({
       pageId: parsedParams.pageId,
-      comment: submission.value.comment,
+      issue: submission.value.issue,
       userId: userRes.user.$id,
       userEmail: userRes.user.email,
     });
@@ -132,12 +132,12 @@ function useTypedLoader() {
 
 export function ScreenshotPage() {
   const { page, pageAccessEmails } = useTypedLoader();
-  const pageCommentContainer = useRef<HTMLDivElement | null>(null);
+  const pageIssueContainer = useRef<HTMLDivElement | null>(null);
 
-  const scrollCommentToBottom = useCallback(() => {
-    if (pageCommentContainer.current) {
-      pageCommentContainer.current.scrollTo({
-        top: pageCommentContainer.current.scrollHeight,
+  const scrollToBottomIssue = useCallback(() => {
+    if (pageIssueContainer.current) {
+      pageIssueContainer.current.scrollTo({
+        top: pageIssueContainer.current.scrollHeight,
       });
     }
   }, []);
@@ -160,11 +160,11 @@ export function ScreenshotPage() {
       <div className="flex-grow-0 flex-shrink-0 basis-1/4 h-screen-minus-nav relative border-l px-2 overflow-y-auto">
         <div
           className="h-screen-minus-nav-2 overflow-y-auto"
-          ref={pageCommentContainer}
+          ref={pageIssueContainer}
         >
-          <RealTimeComments
+          <RealTimeIssue
             pageId={page.id}
-            scrollToBottom={scrollCommentToBottom}
+            scrollToBottom={scrollToBottomIssue}
           />
         </div>
         <ScreenshotFeedbackForm />

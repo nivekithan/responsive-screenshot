@@ -11,7 +11,7 @@ import { ErrorReasons, isDocumentNotFoundException } from "./utils";
 import {
   PageModel,
   convertPageAccessEmailModel,
-  convertPageCommentModel,
+  convertPageIssueModel,
   convertPageModel,
 } from "./convert";
 import pRetry from "p-retry";
@@ -19,7 +19,7 @@ import pRetry from "p-retry";
 export const DATABASE_ID = "dev";
 export const collections = {
   PAGES: "647b0d9310b4ac4f8256",
-  PAGE_COMMENTS: "647f630632a9fb64e6ef",
+  PAGE_ISSUES: "647f630632a9fb64e6ef",
   PAGE_ACCESS_EMAILS: "647f3355ed75a176dba9",
   USER_WEBHOOK_URL: "648046bd24a66d4b1503",
 };
@@ -151,27 +151,27 @@ export async function isPageNameUnique(name: string) {
   return docList.total === 0;
 }
 
-export type StoreCommentArgs = {
-  comment: string;
+export type StoreIssueArgs = {
+  issue: string;
   pageId: string;
   userId: string;
   userEmail: string;
 };
 
-export async function storeComment({
-  comment,
+export async function storeIssue({
+  issue,
   pageId,
   userId,
   userEmail,
-}: StoreCommentArgs) {
+}: StoreIssueArgs) {
   const insertedDocument = await databases
     .createDocument(
       DATABASE_ID,
-      collections.PAGE_COMMENTS,
+      collections.PAGE_ISSUES,
       ID.unique(),
       {
         pageId,
-        comment,
+        issue,
         createdBy: userId,
         createdByEmail: userEmail,
       },
@@ -183,17 +183,17 @@ export async function storeComment({
     return insertedDocument;
   }
 
-  return convertPageCommentModel(insertedDocument);
+  return convertPageIssueModel(insertedDocument);
 }
 
-export type GetPageCommentsArgs = {
+export type GetPageIssueArgs = {
   pageId: string;
 };
 
-export async function getPageComments({ pageId }: GetPageCommentsArgs) {
-  const pageCommentsList = await databases.listDocuments(
+export async function getPageIssues({ pageId }: GetPageIssueArgs) {
+  const pageIssueList = await databases.listDocuments(
     DATABASE_ID,
-    collections.PAGE_COMMENTS,
+    collections.PAGE_ISSUES,
     [
       Query.equal("pageId", pageId),
       Query.orderDesc("$createdAt"),
@@ -201,11 +201,11 @@ export async function getPageComments({ pageId }: GetPageCommentsArgs) {
     ]
   );
 
-  const commentModelList = pageCommentsList.documents
-    .map(convertPageCommentModel)
+  const issueModelList = pageIssueList.documents
+    .map(convertPageIssueModel)
     .reverse();
 
-  return commentModelList;
+  return issueModelList;
 }
 
 export type DeleteIssueArgs = {
@@ -215,7 +215,7 @@ export type DeleteIssueArgs = {
 export async function deleteIssue({ issueId }: DeleteIssueArgs) {
   const deletedDoc = await databases.deleteDocument(
     DATABASE_ID,
-    collections.PAGE_COMMENTS,
+    collections.PAGE_ISSUES,
     issueId
   );
 

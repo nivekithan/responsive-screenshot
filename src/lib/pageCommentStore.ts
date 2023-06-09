@@ -1,38 +1,38 @@
 import { useMemo, useSyncExternalStore } from "react";
 import { subscribe } from "./appwrite";
-import { CommentModel, convertPageCommentModel } from "./convert";
-import { DATABASE_ID, getPageComments, collections } from "./storage";
+import { IssueModel, convertPageIssueModel } from "./convert";
+import { DATABASE_ID, getPageIssues, collections } from "./storage";
 import { orderBy } from "natural-orderby";
 
-type SubscribeToPageCommentsArgs = {
+type SubscribeToPageIssuesArgs = {
   pageId: string;
-  onNewPageComment: (commentModel: CommentModel) => void;
-  onCommentDelete: (commentModel: CommentModel) => void;
+  onNewPageIssue: (issueModel: IssueModel) => void;
+  onIssueDelete: (issueModel: IssueModel) => void;
 };
 
-function subscribeToPageComments({
+function subscribeToPageIssue({
   pageId,
-  onNewPageComment,
-  onCommentDelete,
-}: SubscribeToPageCommentsArgs) {
-  const pageCommentsChannelName = `databases.${DATABASE_ID}.collections.${collections.PAGE_COMMENTS}.documents`;
-  const unsubscribe = subscribe(pageCommentsChannelName, (realtimeEvent) => {
-    const pageCommentsCreateDocumentEvent = `${pageCommentsChannelName}.*.create`;
-    const pageCommentsDeleteDocumentEvent = `${pageCommentsChannelName}.*.delete`;
+  onNewPageIssue,
+  onIssueDelete,
+}: SubscribeToPageIssuesArgs) {
+  const pageIssueChannelName = `databases.${DATABASE_ID}.collections.${collections.PAGE_ISSUES}.documents`;
+  const unsubscribe = subscribe(pageIssueChannelName, (realtimeEvent) => {
+    const pageIssueCreateDocumentEvent = `${pageIssueChannelName}.*.create`;
+    const pageIssuesDeleteDocumentEvent = `${pageIssueChannelName}.*.delete`;
 
-    if (realtimeEvent.events.includes(pageCommentsCreateDocumentEvent)) {
-      const newlyCreatedPageComment = convertPageCommentModel(
+    if (realtimeEvent.events.includes(pageIssueCreateDocumentEvent)) {
+      const newlyCreatedPageIssue = convertPageIssueModel(
         realtimeEvent.payload
       );
 
-      if (newlyCreatedPageComment.pageId === pageId) {
-        onNewPageComment(newlyCreatedPageComment);
+      if (newlyCreatedPageIssue.pageId === pageId) {
+        onNewPageIssue(newlyCreatedPageIssue);
       }
-    } else if (realtimeEvent.events.includes(pageCommentsDeleteDocumentEvent)) {
-      const deletedComment = convertPageCommentModel(realtimeEvent.payload);
+    } else if (realtimeEvent.events.includes(pageIssuesDeleteDocumentEvent)) {
+      const deletedIssue = convertPageIssueModel(realtimeEvent.payload);
 
-      if (deletedComment.pageId === pageId) {
-        onCommentDelete(deletedComment);
+      if (deletedIssue.pageId === pageId) {
+        onIssueDelete(deletedIssue);
       }
     }
   });
@@ -40,28 +40,29 @@ function subscribeToPageComments({
   return unsubscribe;
 }
 
-const PageCommentStore: Map<string, PageIdCommentStore> = new Map();
+const GlobalIssuesStore: Map<string, PageIssueStore> = new Map();
 
 type SyncSubscribe = Parameters<typeof useSyncExternalStore>["0"];
 type SyncGetSnapshot<SnapShot> = Parameters<
   typeof useSyncExternalStore<SnapShot>
 >["1"];
 
-function syncPageComments(pageId: string): SyncSubscribe {
+function syncPageIssue(pageId: string): SyncSubscribe {
   return (onStoreChange) => {
-    const pageIdCommentStore = getPageIdStoreOrInitializeIt(
-      PageCommentStore,
+    const pageIssueStore = getPageIssueStoreOrInitializeIt(
+      GlobalIssuesStore,
       pageId,
       onStoreChange
     );
-    const unsubscribeWithAppwrite = subscribeToPageComments({
+
+    const unsubscribeWithAppwrite = subscribeToPageIssue({
       pageId,
-      onNewPageComment(newComment) {
-        pageIdCommentStore.addRealtimeComment(newComment);
+      onNewPageIssue(newIssue) {
+        pageIssueStore.addRealtimeIssue(newIssue);
         onStoreChange();
       },
-      onCommentDelete(commentModel) {
-        pageIdCommentStore.deleteComment(commentModel.id);
+      onIssueDelete(issueModel) {
+        pageIssueStore.deleteIssue(issueModel.id);
         onStoreChange();
       },
     });
@@ -70,116 +71,114 @@ function syncPageComments(pageId: string): SyncSubscribe {
   };
 }
 
-const EMPTY_PAGE_COMMENT: Array<CommentModel> = [];
+const EMPTY_PAGE_ISSUE: Array<IssueModel> = [];
 
-function getPageCommentSnapshot(
-  pageId: string
-): SyncGetSnapshot<CommentModel[]> {
+function getPageIssueSnapshot(pageId: string): SyncGetSnapshot<IssueModel[]> {
   return () => {
-    const pageIdStore = PageCommentStore.get(pageId);
+    const pageIdStore = GlobalIssuesStore.get(pageId);
 
     if (!pageIdStore) {
-      return EMPTY_PAGE_COMMENT;
+      return EMPTY_PAGE_ISSUE;
     }
 
-    return pageIdStore.comments;
+    return pageIdStore.issue;
   };
 }
 
-function getPageIdStoreOrInitializeIt(
-  pageCommentStore: typeof PageCommentStore,
+function getPageIssueStoreOrInitializeIt(
+  globalIssueStore: typeof GlobalIssuesStore,
   pageId: string,
   onStoreChange: () => void
 ) {
-  const isStoreNotIntialized = pageCommentStore.get(pageId) === undefined;
+  const isStoreNotIntialized = globalIssueStore.get(pageId) === undefined;
 
   if (isStoreNotIntialized) {
-    pageCommentStore.set(pageId, new PageIdCommentStore());
+    globalIssueStore.set(pageId, new PageIssueStore());
   }
 
-  const pageIdCommentStore = pageCommentStore.get(pageId);
+  const pageIssueStore = globalIssueStore.get(pageId);
 
-  if (!pageIdCommentStore) {
+  if (!pageIssueStore) {
     throw new Error("Unreachable");
   }
 
-  getPageComments({ pageId }).then((pastComments) => {
-    pageIdCommentStore.setPastComments(pastComments);
+  getPageIssues({ pageId }).then((pastIssues) => {
+    pageIssueStore.setPastIssues(pastIssues);
     onStoreChange();
   });
 
-  return pageIdCommentStore;
+  return pageIssueStore;
 }
 
-class PageIdCommentStore {
-  #commentIdStore: Map<string, boolean>;
-  comments: Array<CommentModel>;
+class PageIssueStore {
+  #issueStore: Map<string, boolean>;
+  issue: Array<IssueModel>;
 
   constructor() {
-    this.#commentIdStore = new Map();
-    this.comments = [];
+    this.#issueStore = new Map();
+    this.issue = [];
   }
 
-  #addId(comment: CommentModel) {
-    this.#commentIdStore.set(comment.id, true);
+  #addId(issue: IssueModel) {
+    this.#issueStore.set(issue.id, true);
   }
 
-  #addIds(comments: Array<CommentModel>) {
-    for (const comment of comments) {
-      this.#addId(comment);
+  #addIds(issues: Array<IssueModel>) {
+    for (const issue of issues) {
+      this.#addId(issue);
     }
   }
 
-  #isCommentUnique(comment: CommentModel) {
-    return !this.#commentIdStore.has(comment.id);
+  #isIssueUnique(issue: IssueModel) {
+    return !this.#issueStore.has(issue.id);
   }
 
-  setPastComments(pastComments: Array<CommentModel>) {
-    const isRealtimeCommentsPresent = this.comments.length !== 0;
+  setPastIssues(pastIssues: Array<IssueModel>) {
+    const isRealtimeIssuePresent = this.issue.length !== 0;
 
-    if (!isRealtimeCommentsPresent) {
-      this.#addIds(pastComments);
-      this.comments = pastComments;
+    if (!isRealtimeIssuePresent) {
+      this.#addIds(pastIssues);
+      this.issue = pastIssues;
       return;
     }
 
-    const filteredComments = pastComments.filter((v) =>
-      this.#isCommentUnique(v)
+    const filteredIssues = pastIssues.filter((v) =>
+      this.#isIssueUnique(v)
     );
 
-    this.comments = orderBy(
-      filteredComments.concat(this.comments),
+    this.issue = orderBy(
+      filteredIssues.concat(this.issue),
       (v) => v.createdAt,
       "asc"
     );
   }
 
-  addRealtimeComment(comment: CommentModel) {
-    if (!this.#isCommentUnique(comment)) {
+  addRealtimeIssue(issue: IssueModel) {
+    if (!this.#isIssueUnique(issue)) {
       return;
     }
 
-    this.#addId(comment);
+    this.#addId(issue);
 
-    this.comments.push(comment);
-    this.comments = orderBy(this.comments, (v) => v.createdAt, "asc");
+    this.issue.push(issue);
+    this.issue = orderBy(this.issue, (v) => v.createdAt, "asc");
   }
 
-  deleteComment(commentId: string) {
-    const commentIndex = this.comments.findIndex((v) => v.id === commentId);
+  deleteIssue(issueId: string) {
+    const issueIndex = this.issue.findIndex((v) => v.id === issueId);
 
-    if (commentIndex === -1) {
+    if (issueIndex === -1) {
       return;
     }
 
-    this.comments.splice(commentIndex, 1);
-    this.comments = [...this.comments];
+    this.issue.splice(issueIndex, 1);
+    this.issue = [...this.issue];
   }
 }
 
-export function useSyncPageComments(pageId: string) {
-  const syncSubscribe = useMemo(() => syncPageComments(pageId), [pageId]);
-  const getSnapshot = useMemo(() => getPageCommentSnapshot(pageId), [pageId]);
+export function useSyncPageIssue(pageId: string) {
+  const syncSubscribe = useMemo(() => syncPageIssue(pageId), [pageId]);
+  const getSnapshot = useMemo(() => getPageIssueSnapshot(pageId), [pageId]);
 
   const snapshot = useSyncExternalStore(syncSubscribe, getSnapshot);
 

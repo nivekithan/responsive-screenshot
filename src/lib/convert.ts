@@ -1,28 +1,28 @@
 import { z } from "zod";
 
-const PageCommentSchema = z.object({
+const PageIssueSchema = z.object({
   $id: z.string(),
   pageId: z.string(),
-  comment: z.string(),
+  issue: z.string(),
   $createdAt: z.string(),
   createdByEmail: z.string(),
   createdBy: z.string(),
 });
 
-export function convertPageCommentModel(pageComment: unknown) {
-  const payload = PageCommentSchema.parse(pageComment);
+export function convertPageIssueModel(pageIssue: unknown) {
+  const payload = PageIssueSchema.parse(pageIssue);
 
   return {
     id: payload.$id,
     pageId: payload.pageId,
-    comment: payload.comment,
+    issue: payload.issue,
     createdAt: payload.$createdAt,
     createdBy: payload.createdBy,
     createdByEmail: payload.createdByEmail,
   };
 }
 
-export type CommentModel = ReturnType<typeof convertPageCommentModel>;
+export type IssueModel = ReturnType<typeof convertPageIssueModel>;
 
 const PageAccessEmailSchema = z.object({
   $id: z.string(),

@@ -25,7 +25,9 @@ export function NewSiteForm({
 }: NewSiteFormProps) {
   const navigation = useNavigation();
 
-  const isFormSubmitting = navigation.state === "submitting";
+  const isFormSubmitting =
+    navigation.state === "submitting" &&
+    navigation.formData.has(nameConfig.name);
 
   return (
     <Card>

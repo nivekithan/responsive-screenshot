@@ -91,7 +91,6 @@ async function getPageFromAppwrite(id: string) {
     throw value;
   }
 
-  console.log({ value });
   return value;
 }
 

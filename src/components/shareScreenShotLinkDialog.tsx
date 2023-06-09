@@ -33,7 +33,6 @@ type emailReducerAction =
     };
 
 function shareToEmailListReducer(state: EmailList, action: emailReducerAction) {
-  console.log({ state, action });
   if (action.type === "addNewEmail") {
     const newState = new Set(state);
     newState.add(action.email);
@@ -96,7 +95,6 @@ export function ShareScreenShotLinkDialog({
         <Form
           className="flex flex-col gap-y-2.5"
           onSubmit={(event) => {
-            console.log("Submitting form");
             event.preventDefault();
             const emailToAdd = z
               .string()

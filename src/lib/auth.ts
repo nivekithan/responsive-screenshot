@@ -5,6 +5,8 @@ import {
   isUserAlreadyExistsException,
   isUserInvalidCreditanilsException,
 } from "./utils";
+import { cachified } from "cachified";
+import { cache, getUserCacheKey, invalidateUserCache } from "./cache";
 
 export type LoginUserRes =
   | {
@@ -70,7 +72,7 @@ export type GetCurrentUserRes =
     }
   | { valid: false; message: string };
 
-export async function getCurrentUser(): Promise<GetCurrentUserRes> {
+async function getCurrentUserImpl(): Promise<GetCurrentUserRes> {
   const user = await account.get().catch((err: AppwriteException) => err);
 
   if (user instanceof AppwriteException) {
@@ -78,6 +80,22 @@ export async function getCurrentUser(): Promise<GetCurrentUserRes> {
   }
 
   return { valid: true, user };
+}
+
+export async function getCurrentUser() {
+  const userRes = await cachified({
+    key: getUserCacheKey(),
+    cache,
+    async getFreshValue() {
+      return getCurrentUserImpl();
+    },
+  });
+
+  if (!userRes.valid) {
+    invalidateUserCache();
+  }
+
+  return userRes;
 }
 
 export type LogoutUserRes =
@@ -94,6 +112,8 @@ export async function logoutUser(): Promise<LogoutUserRes> {
   if (res instanceof AppwriteException) {
     return { valid: false, message: res.message };
   }
+
+  invalidateUserCache();
 
   return { valid: true };
 }

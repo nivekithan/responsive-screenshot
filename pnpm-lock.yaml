@@ -35,12 +35,18 @@ dependencies:
   appwrite:
     specifier: ^11.0.0
     version: 11.0.0
+  cachified:
+    specifier: ^3.5.4
+    version: 3.5.4
   class-variance-authority:
     specifier: ^0.6.0
     version: 0.6.0(typescript@5.0.4)
   clsx:
     specifier: ^1.2.1
     version: 1.2.1
+  lru-cache:
+    specifier: ^9.1.2
+    version: 9.1.2
   lucide-react:
     specifier: ^0.230.0
     version: 0.230.0(react@18.2.0)
@@ -1473,6 +1479,10 @@ packages:
       update-browserslist-db: 1.0.11(browserslist@4.21.7)
     dev: true
 
+  /cachified@3.5.4:
+    resolution: {integrity: sha512-RO7jQl7vL1qulRvr+o++iVVduFlKb2pJUYxY48LULusyqmGUFaRESERu1Z7UI895JNtTB4yvfErNv64OsayK8g==}
+    dev: false
+
   /callsites@3.1.0:
     resolution: {integrity: sha512-P8BjAsXvZS+VIDUI11hHCQEv74YT67YUi5JJFNWIqL235sBmjX4+qx9Muvls5ivyNENctx46xQLQ3aTuE7ssaQ==}
     engines: {node: '>=6'}
@@ -2085,6 +2095,11 @@ packages:
     dependencies:
       yallist: 4.0.0
     dev: true
+
+  /lru-cache@9.1.2:
+    resolution: {integrity: sha512-ERJq3FOzJTxBbFjZ7iDs+NiK4VI9Wz+RdrrAB8dio1oV+YvdPzUEE4QNiT2VD51DkIbCYRUUzCRkssXCHqSnKQ==}
+    engines: {node: 14 || >=16.14}
+    dev: false
 
   /lucide-react@0.230.0(react@18.2.0):
     resolution: {integrity: sha512-/Cbul7Jfq6aZ2RIsYZXH1jWkUVEP3lK8d5uBcggxf0u1oSkPcfKo/PIXhya5HEpmuA/RO6NmuNp3moOVloQEdA==}

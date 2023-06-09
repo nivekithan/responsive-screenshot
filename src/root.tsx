@@ -8,7 +8,7 @@ import {
 import { getCurrentUser } from "./lib/auth";
 import { Navigation } from "./components/navigation";
 import { Toaster } from "./components/ui/toaster";
-import { isSlackAppInstalled } from "./lib/storage";
+import { getAvatarForUser, isSlackAppInstalled } from "./lib/storage";
 import { getLoginUrl } from "./lib/utils";
 
 export async function loader({ request }: LoaderFunctionArgs) {
@@ -23,7 +23,11 @@ export async function loader({ request }: LoaderFunctionArgs) {
     userId: userRes.user.$id,
   });
 
-  return { isSlackAppInstalled: hasSlackAppInstalled };
+  return {
+    isSlackAppInstalled: hasSlackAppInstalled,
+    userEmail: userRes.user.email,
+    avatarUrl: getAvatarForUser({ user: userRes.user }),
+  };
 }
 
 function useTypedLoaderData() {
@@ -33,11 +37,15 @@ function useTypedLoaderData() {
 }
 
 export function RouteLayout() {
-  const { isSlackAppInstalled } = useTypedLoaderData();
+  const { isSlackAppInstalled, userEmail, avatarUrl } = useTypedLoaderData();
   return (
     <>
       <div>
-        <Navigation showSlackInstallButton={!isSlackAppInstalled} />
+        <Navigation
+          showSlackInstallButton={!isSlackAppInstalled}
+          userEmail={userEmail}
+          avatarUrl={avatarUrl}
+        />
         <Outlet />
       </div>
       <Toaster />

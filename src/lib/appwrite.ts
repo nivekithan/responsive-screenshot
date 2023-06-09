@@ -1,4 +1,11 @@
-import { Account, Client, Databases, Functions, Models } from "appwrite";
+import {
+  Account,
+  Avatars,
+  Client,
+  Databases,
+  Functions,
+  Models,
+} from "appwrite";
 import { z } from "zod";
 const client = new Client()
   .setEndpoint("https://cloud.appwrite.io/v1") // Your API Endpoint
@@ -7,6 +14,8 @@ const client = new Client()
 export const account = new Account(client);
 
 export const databases = new Databases(client);
+
+export const avatars = new Avatars(client);
 
 const functions = new Functions(client);
 

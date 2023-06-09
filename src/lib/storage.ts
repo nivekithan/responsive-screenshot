@@ -1,5 +1,12 @@
-import { AppwriteException, ID, Permission, Query, Role } from "appwrite";
-import { databases, secureGetPage } from "./appwrite";
+import {
+  AppwriteException,
+  ID,
+  Models,
+  Permission,
+  Query,
+  Role,
+} from "appwrite";
+import { avatars, databases, secureGetPage } from "./appwrite";
 import { ErrorReasons, isDocumentNotFoundException } from "./utils";
 import {
   PageModel,
@@ -269,4 +276,13 @@ export async function isSlackAppInstalled({ userId }: IsSlackAppInstalledArgs) {
   );
 
   return docList.total !== 0;
+}
+
+export type GetAvatarForUserArgs = {
+  user: Models.User<Models.Preferences>;
+};
+export function getAvatarForUser({ user }: GetAvatarForUserArgs) {
+  const url = avatars.getInitials(user.email, 60, 60);
+
+  return url.toString();
 }

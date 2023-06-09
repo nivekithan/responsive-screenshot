@@ -134,6 +134,16 @@ export async function updatePageUrl({ url, pageId }: UpdatePageUrlArgs) {
   return updatedPage;
 }
 
+export async function isPageNameUnique(name: string) {
+  const docList = await databases.listDocuments(
+    DATABASE_ID,
+    collections.PAGES,
+    [Query.equal("name", name)]
+  );
+
+  return docList.total === 0;
+}
+
 export type StoreCommentArgs = {
   comment: string;
   pageId: string;

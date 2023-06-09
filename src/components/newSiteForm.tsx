@@ -38,7 +38,7 @@ export function NewSiteForm({
         </CardDescription>
       </CardHeader>
       <Form method="post" {...formProps}>
-        <CardContent>
+        <CardContent className="flex gap-y-2 flex-col">
           <LabeledInput
             label="Name:"
             id="new-page-name"

@@ -5,7 +5,7 @@ import { Separator } from "@/components/ui/separator";
 import { generateScreenshotFn } from "@/lib/appwrite";
 import { getCurrentUser } from "@/lib/auth";
 import { PageModel } from "@/lib/convert";
-import { getPages, storePage } from "@/lib/storage";
+import { getPages, isPageNameUnique, storePage } from "@/lib/storage";
 import { getLoginUrl } from "@/lib/utils";
 import { useForm } from "@conform-to/react";
 import { parse } from "@conform-to/zod";
@@ -54,7 +54,7 @@ export async function action({ request }: ActionFunctionArgs) {
 
   if (!userRes.valid) {
     const redirectUrl = getLoginUrl(request.url);
-    throw redirect(redirectUrl.toString(), );
+    throw redirect(redirectUrl.toString());
   }
   const user = userRes.user;
 
@@ -67,6 +67,15 @@ export async function action({ request }: ActionFunctionArgs) {
 
   const url = submission.value.url;
   const name = submission.value.name;
+
+  const isNameUnique = await isPageNameUnique(name);
+
+  if (!isNameUnique) {
+    submission.error.name =
+      "Name should be unique. Please Provide another name";
+    return { submission };
+  }
+
   const screenshotUrls = await generateScreenshotFn(
     url,
     `${new Date().getTime()}`

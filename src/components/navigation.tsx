@@ -33,15 +33,11 @@ export function Navigation({
             <h3>{userEmail}</h3>
           </div>
           {showSlackInstallButton ? (
-            <a href="https://slack.com/oauth/v2/authorize?client_id=4692604248164.5385506506290&scope=incoming-webhook&user_scope=">
-              <img
-                alt="Add to Slack"
-                height="40"
-                width="139"
-                src="https://platform.slack-edge.com/img/add_to_slack.png"
-                srcSet="https://platform.slack-edge.com/img/add_to_slack.png 1x, https://platform.slack-edge.com/img/add_to_slack@2x.png 2x"
-              />
-            </a>
+            <Button asChild variant="secondary">
+              <Link to="https://slack.com/oauth/v2/authorize?client_id=4692604248164.5385506506290&scope=incoming-webhook&user_scope=">
+                Install Slack Bot
+              </Link>
+            </Button>
           ) : null}
 
           <Form action="/logout" method="post">

@@ -2,13 +2,6 @@ import { useEffect, useRef } from "react";
 import { useFetcher } from "react-router-dom";
 import { Input } from "./ui/input";
 import { Button } from "./ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "./ui/select";
 import { conform, useForm } from "@conform-to/react";
 import { z } from "zod";
 import { parse } from "@conform-to/zod";
@@ -20,9 +13,6 @@ export const addCommentSchema = z.object({
 export function ScreenshotFeedbackForm() {
   const commentFetcher = useFetcher();
   const commentFormRef = useRef<HTMLFormElement | null>();
-
-  const approvalStatusFetcher = useFetcher();
-  const approvalStatusFormRef = useRef<HTMLFormElement | null>(null);
 
   const [addCommentForm, { comment }] = useForm({
     lastSubmission: commentFetcher.data,
@@ -61,8 +51,13 @@ export function ScreenshotFeedbackForm() {
           {...conform.input(comment)}
           defaultValue={undefined}
         />
-        <Button type="submit" variant="default" className="w-24">
-          Send
+        <Button
+          type="submit"
+          variant="default"
+          className="w-24"
+          disabled={isAddingComment}
+        >
+          {isAddingComment ? "Sending..." : "Send"}
         </Button>
       </commentFetcher.Form>
     </div>

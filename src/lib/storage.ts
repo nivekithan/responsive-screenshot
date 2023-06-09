@@ -20,7 +20,13 @@ import {
 } from "./convert";
 import pRetry from "p-retry";
 import { cachified } from "cachified";
-import { cache, getPagesCacheKey, invalidatePagesCache } from "./cache";
+import {
+  cache,
+  getPagesCacheKey,
+  getSinglePageCacheKey,
+  invalidatePagesCache,
+  invalidateSinglePageCache,
+} from "./cache";
 
 export const DATABASE_ID = "dev";
 export const collections = {
@@ -61,6 +67,31 @@ export async function getPages() {
   return pagesRes;
 }
 
+async function getPageFromAppwriteImpl(id: string) {
+  return databases
+    .getDocument(DATABASE_ID, collections.PAGES, id)
+    .catch((err: AppwriteException) => err);
+}
+
+async function getPageFromAppwrite(id: string) {
+  const value = await cachified({
+    key: getSinglePageCacheKey(id),
+    cache,
+    async getFreshValue() {
+      return getPageFromAppwriteImpl(id);
+    },
+    ttl: ONE_MONTH_IN_MS,
+  });
+
+  if (value instanceof AppwriteException) {
+    invalidateSinglePageCache(id);
+    throw value;
+  }
+
+  console.log({ value });
+  return value;
+}
+
 export type GetPageProps = {
   id: string;
 };
@@ -74,18 +105,17 @@ export type GetPageRes =
   | { valid: false; message: string };
 
 export async function getPage({ id }: GetPageProps): Promise<GetPageRes> {
-  const page = await databases
-    .getDocument(DATABASE_ID, collections.PAGES, id)
-    .catch((err: AppwriteException) => {
-      return secureGetPage(id).then((res) => {
-        console.log(res);
-        if (res === null) {
-          return err;
-        } else {
-          return res;
-        }
-      });
+  const page = await getPageFromAppwrite(id).catch((err: AppwriteException) => {
+    return secureGetPage(id).then((res) => {
+      if (res === null) {
+        return err;
+      } else {
+        return res;
+      }
     });
+  });
+
+  console.log({ page });
 
   if (page instanceof AppwriteException && isDocumentNotFoundException(page)) {
     return { valid: false, reason: ErrorReasons.pageNotFound };
@@ -162,6 +192,8 @@ export async function updatePageUrl({ url, pageId }: UpdatePageUrlArgs) {
     pageId,
     { url }
   );
+
+  invalidateSinglePageCache(pageId);
 
   return updatedPage;
 }

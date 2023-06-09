@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { Client, Databases, Query, Users } from "node-appwrite";
+import { Client, Databases, Query, } from "node-appwrite";
 import fetch from "node-fetch";
 
 const DATABASE_ID = "dev";
@@ -16,28 +16,14 @@ const WEBSITE_HOST = "niveth.loca.lt";
 
 const ReqSchema = z.object({
   variables: z.object({
-    APPWRITE_FUNCTION_EVENT: z.union([
-      z
-        .string()
-        .startsWith(
-          `databases.${DATABASE_ID}.collections.${collections.PAGE_APPROVAL_STATUS}.documents`
-        ),
-      z
-        .string()
-        .startsWith(
-          `databases.${DATABASE_ID}.collections.${collections.PAGE_COMMENTS}.documents`
-        ),
-    ]),
+    APPWRITE_FUNCTION_EVENT: z
+      .string()
+      .startsWith(
+        `databases.${DATABASE_ID}.collections.${collections.PAGE_COMMENTS}.documents`
+      ),
     APPWRITE_FUNCTION_EVENT_DATA: z.string(),
     ACCESS_KEY: z.string(),
   }),
-});
-
-const PageApprovalStatusDocSchema = z.object({
-  $id: z.string(),
-  status: z.union([z.literal("APPROVED"), z.literal("DISAPPROVED")]),
-  createdBy: z.string(),
-  pageId: z.string(),
 });
 
 const PageCommentsDocSchema = z.object({
@@ -45,12 +31,10 @@ const PageCommentsDocSchema = z.object({
   createdBy: z.string(),
   pageId: z.string(),
   comment: z.string(),
+  createdByEmail: z.string(),
 });
 
-const EventDataSchema = z.union([
-  PageApprovalStatusDocSchema,
-  PageCommentsDocSchema,
-]);
+const EventDataSchema = PageCommentsDocSchema;
 
 export async function handleEvent(
   req: unknown,
@@ -63,19 +47,19 @@ export async function handleEvent(
       JSON.parse(variables.APPWRITE_FUNCTION_EVENT_DATA)
     );
 
+    const eventName = variables.APPWRITE_FUNCTION_EVENT;
+
     const client = new Client()
       .setEndpoint("https://cloud.appwrite.io/v1")
       .setProject("pdf")
       .setKey(variables.ACCESS_KEY);
 
     const database = new Databases(client);
-    const users = new Users(client);
-
-    const createdBy = eventData.createdBy;
     const pageId = eventData.pageId;
 
-    const [email, webhookAndImageUrl] = await Promise.all([
-      getUserEmail(createdBy, users),
+    const email = eventData.createdByEmail;
+
+    const [webhookAndImageUrl] = await Promise.all([
       getWebhookUrlAndPage(pageId, database),
     ]);
 
@@ -87,21 +71,24 @@ export async function handleEvent(
     const { page, webhookUrl } = webhookAndImageUrl;
 
     const webhookBody = (() => {
-      if ("status" in eventData) {
-        const webhookBody = formatTextForStatus({
-          email,
-          page,
-          status: eventData.status,
-        });
-        return webhookBody;
-      } else if ("comment" in eventData) {
-        const webhookBody = formatTextForComment({
-          email,
-          page,
-          comment: eventData.comment,
-        });
+      if ("comment" in eventData) {
+        if (eventName.endsWith("create")) {
+          const webhookBody = formatTextForIssueCreate({
+            email,
+            page,
+            comment: eventData.comment,
+          });
 
-        return webhookBody;
+          return webhookBody;
+        } else if (eventName.endsWith("delete")) {
+          const webhookBody = formatTextForIssueDelete({
+            email,
+            comment: eventData.comment,
+            page,
+          });
+
+          return webhookBody;
+        }
       }
     })();
 
@@ -119,12 +106,6 @@ export async function handleEvent(
     console.log(err);
     return res.json({ success: false }, 400);
   }
-}
-
-async function getUserEmail(userId: string, users: Users) {
-  const userObj = await users.get(userId);
-
-  return userObj.email;
 }
 
 const PageDocSchema = z.object({
@@ -159,22 +140,25 @@ async function getWebhookUrlAndPage(pageId: string, database: Databases) {
   return { webhookUrl: docs.url, page: pageObj };
 }
 
-type FormatTextOnSaveArgs = {
+type FormatTextForIssueCreateArgs = {
   email: string;
   page: z.infer<typeof PageDocSchema>;
-  status: z.infer<typeof PageApprovalStatusDocSchema>["status"];
+  comment: string;
 };
-
-function formatTextForStatus({ email, page, status }: FormatTextOnSaveArgs) {
+function formatTextForIssueCreate({
+  email,
+  page,
+  comment,
+}: FormatTextForIssueCreateArgs) {
   return {
     blocks: [
       {
         type: "section",
         text: {
           type: "mrkdwn",
-          text: `${email} has ${status.toLocaleLowerCase()} your <${`https://${WEBSITE_HOST}/page/${page.$id}`}|${
+          text: `${email} has created new isssue on <${`https://${WEBSITE_HOST}/page/${page.$id}`}|${
             page.name
-          }>`,
+          }>:\n>${comment}`,
         },
       },
       {
@@ -191,23 +175,23 @@ function formatTextForStatus({ email, page, status }: FormatTextOnSaveArgs) {
   };
 }
 
-type FormatTextForCommentArgs = {
+type FormatTextForIssueDeleteArgs = {
   email: string;
   page: z.infer<typeof PageDocSchema>;
   comment: string;
 };
-function formatTextForComment({
+function formatTextForIssueDelete({
   email,
   page,
   comment,
-}: FormatTextForCommentArgs) {
+}: FormatTextForIssueDeleteArgs) {
   return {
     blocks: [
       {
         type: "section",
         text: {
           type: "mrkdwn",
-          text: `${email} has commented on <${`https://${WEBSITE_HOST}/page/${page.$id}`}|${
+          text: `${email} has resolved isssue on <${`https://${WEBSITE_HOST}/page/${page.$id}`}|${
             page.name
           }>:\n>${comment}`,
         },

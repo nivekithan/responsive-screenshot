@@ -42,7 +42,7 @@ export function getLoginUrl(currentUrl: string) {
 }
 
 export function getSignUpUrl(currentUrl: string) {
-  const url = new URL("/login", window.location.origin);
+  const url = new URL("/signup", window.location.origin);
 
   url.searchParams.set("redirectTo", currentUrl);
 

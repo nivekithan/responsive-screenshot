@@ -3,16 +3,67 @@ import { test, expect } from "@playwright/test";
 test("Redirects to login page", async ({ page }) => {
   await page.goto("/");
 
-  // Expect a title "to contain" a substring.
-  await expect(page).toHaveURL(/.*login/);
+  const expectedUrl = new URL(`http://localhost:5173/login`);
+
+  expectedUrl.searchParams.set("redirectTo", "http://localhost:5173/");
+
+  await expect(page).toHaveURL(expectedUrl.toString());
 });
 
-// test("get started link", async ({ page }) => {
-//   await page.goto("http://example.com/");
+test("Login page contains links to signup page", async ({ page }) => {
+  await page.goto("/login");
 
-//   // Click the get started link.
-//   await page.getByRole("link", { name: "More information.." }).click();
+  const signUpLinkLocator = page.getByRole("link", { name: "Sign up" });
 
-//   // Expects the URL to contain intro.
-//   await expect(page).toHaveURL(/.*reserved/);
-// });
+  await expect(signUpLinkLocator).toBeVisible();
+
+  await signUpLinkLocator.click();
+
+  await expect(page).toHaveURL(/http:\/\/localhost:5173\/signup/);
+});
+
+test("RedirectTo searchparam should be persisted when going from login page to signup page", async ({
+  page,
+}) => {
+  await page.goto("/");
+
+  const signUpLinkLocator = page.getByRole("link", { name: "Sign up" });
+
+  await signUpLinkLocator.click();
+
+  const expectedUrl = new URL(`http://localhost:5173/signup`);
+  expectedUrl.searchParams.set("redirectTo", "http://localhost:5173/");
+
+  await expect(page).toHaveURL(expectedUrl.toString());
+});
+
+test("Signup page contains links to login page", async ({ page }) => {
+  await page.goto("/signup");
+
+  const loginLinkLocator = page.getByRole("link", { name: "Log In" });
+
+  await expect(loginLinkLocator).toBeVisible();
+
+  await loginLinkLocator.click();
+
+  await expect(page).toHaveURL(/http:\/\/localhost:5173\/login/);
+});
+
+test("RedirectTo searchparam should be persisted when going from signup page to login page", async ({
+  page,
+}) => {
+  await page.goto("/");
+
+  const signUpLinkLocator = page.getByRole("link", { name: "Sign up" });
+
+  await signUpLinkLocator.click();
+
+  const loginLinkLocator = page.getByRole("link", { name: "Log In" });
+
+  await loginLinkLocator.click();
+
+  const expectedUrl = new URL(`http://localhost:5173/login`);
+  expectedUrl.searchParams.set("redirectTo", "http://localhost:5173/");
+
+  await expect(page).toHaveURL(expectedUrl.toString());
+});

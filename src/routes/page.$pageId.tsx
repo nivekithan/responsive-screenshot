@@ -16,7 +16,7 @@ import {
   updatePageUrl,
 } from "@/lib/storage";
 import { getPage } from "@/lib/storage";
-import { getLoginUrl } from "@/lib/utils";
+import { getLoginUrl, monitorLoaderFn } from "@/lib/utils";
 import { parse } from "@conform-to/zod";
 import { useCallback, useRef } from "react";
 import {
@@ -29,43 +29,46 @@ import { z } from "zod";
 
 const ParamsSchema = z.object({ pageId: z.string() });
 
-export async function loader({ params, request }: LoaderFunctionArgs) {
-  const userRes = await getCurrentUser();
+export const loader = monitorLoaderFn(
+  "page.$pageId",
+  async ({ params, request }: LoaderFunctionArgs) => {
+    const userRes = await getCurrentUser();
 
-  if (!userRes.valid) {
-    const redirectUrl = getLoginUrl(request.url);
-    throw redirect(redirectUrl.toString());
+    if (!userRes.valid) {
+      const redirectUrl = getLoginUrl(request.url);
+      throw redirect(redirectUrl.toString());
+    }
+
+    const parsedParams = ParamsSchema.parse(params);
+    const pageId = parsedParams.pageId;
+
+    const pagePromise = getPage({ id: pageId });
+    const pageAccessEmailsPromise = getPageAccessEmails(pageId);
+
+    const [pageRes, pageAccessEmails] = await Promise.all([
+      pagePromise,
+      pageAccessEmailsPromise,
+    ]);
+
+    if (!pageRes.valid) {
+      // TODO: DO Error handling
+      throw redirect("/");
+    }
+
+    if (!pageAccessEmails.valid) {
+      // TODO: Do Error handling
+      throw redirect("/");
+    }
+
+    const isPageOwner = pageRes.page.createdBy === userRes.user.$id;
+
+    return {
+      page: pageRes.page,
+      pageAccessEmails: pageAccessEmails.pageEmailAccess,
+      isPageOwner,
+    };
   }
-
-  const parsedParams = ParamsSchema.parse(params);
-  const pageId = parsedParams.pageId;
-
-  const pagePromise = getPage({ id: pageId });
-  const pageAccessEmailsPromise = getPageAccessEmails(pageId);
-
-  const [pageRes, pageAccessEmails] = await Promise.all([
-    pagePromise,
-    pageAccessEmailsPromise,
-  ]);
-
-  if (!pageRes.valid) {
-    // TODO: DO Error handling
-    throw redirect("/");
-  }
-
-  if (!pageAccessEmails.valid) {
-    // TODO: Do Error handling
-    throw redirect("/");
-  }
-
-  const isPageOwner = pageRes.page.createdBy === userRes.user.$id;
-
-  return {
-    page: pageRes.page,
-    pageAccessEmails: pageAccessEmails.pageEmailAccess,
-    isPageOwner,
-  };
-}
+);
 
 export async function action({ request, params }: ActionFunctionArgs) {
   const userRes = await getCurrentUser();

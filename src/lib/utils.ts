@@ -1,5 +1,7 @@
+import { SpanStatusType, startTransaction } from "@sentry/react";
 import { AppwriteException } from "appwrite";
 import { ClassValue, clsx } from "clsx";
+import { LoaderFunctionArgs } from "react-router-dom";
 import { twMerge } from "tailwind-merge";
 
 export function cn(...inputs: ClassValue[]) {
@@ -74,4 +76,31 @@ export function getErrorMessage(
   }
 
   return error.message;
+}
+
+export const SpanStatus = {
+  Ok: "ok",
+  UnknownError: "unknown_error",
+} satisfies Record<string, SpanStatusType>;
+
+export function monitorLoaderFn<LoaderData>(
+  nameOfRoute: string,
+  fn: (args: LoaderFunctionArgs) => Promise<LoaderData>
+): (args: LoaderFunctionArgs) => Promise<LoaderData> {
+  return async (loaderArgs) => {
+    const transaction = startTransaction({ name: `loader ${nameOfRoute}` });
+
+    const spanChild = transaction.startChild({ op: "loading" });
+
+    try {
+      spanChild.setStatus(SpanStatus.Ok);
+      return await fn(loaderArgs);
+    } catch (err) {
+      spanChild.setStatus(SpanStatus.UnknownError);
+      throw err;
+    } finally {
+      spanChild.finish();
+      transaction.finish();
+    }
+  };
 }

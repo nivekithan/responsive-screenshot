@@ -10,17 +10,21 @@ import { parse } from "@conform-to/zod";
 import { useForm } from "@conform-to/react";
 import { getCurrentUser, loginUser } from "@/lib/auth";
 import { AuthForm } from "@/components/authForm";
+import { monitorLoaderFn } from "@/lib/utils";
 
-export async function loader({ request }: LoaderFunctionArgs) {
-  const user = await getCurrentUser();
-  const redirectTo = new URL(request.url).searchParams.get("redirectTo");
+export const loader = monitorLoaderFn(
+  "login",
+  async ({ request }: LoaderFunctionArgs) => {
+    const user = await getCurrentUser();
+    const redirectTo = new URL(request.url).searchParams.get("redirectTo");
 
-  if (user.valid) {
-    throw redirect(redirectTo || "/");
+    if (user.valid) {
+      throw redirect(redirectTo || "/");
+    }
+
+    return redirectTo;
   }
-
-  return redirectTo;
-}
+);
 
 const LoginActionSchema = z.object({
   email: z.string().nonempty("Email is Required").email("Email is invalid"),

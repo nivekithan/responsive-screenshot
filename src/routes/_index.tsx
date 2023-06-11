@@ -6,7 +6,7 @@ import { generateScreenshotFn } from "@/lib/appwrite";
 import { getCurrentUser } from "@/lib/auth";
 import { PageModel } from "@/lib/convert";
 import { getPages, isPageNameUnique, storePage } from "@/lib/storage";
-import { getErrorMessage, getLoginUrl } from "@/lib/utils";
+import { getErrorMessage, getLoginUrl, monitorLoaderFn } from "@/lib/utils";
 import { useForm } from "@conform-to/react";
 import { parse } from "@conform-to/zod";
 import * as React from "react";
@@ -19,23 +19,25 @@ import {
 } from "react-router-dom";
 import { z } from "zod";
 
-export async function loader({ request }: LoaderFunctionArgs) {
-  const user = await getCurrentUser();
+export const loader = monitorLoaderFn(
+  "root_index",
+  async ({ request }: LoaderFunctionArgs) => {
+    const user = await getCurrentUser();
 
-  if (!user.valid) {
-    const redirectUrl = getLoginUrl(request.url);
-    throw redirect(redirectUrl.toString());
+    if (!user.valid) {
+      const redirectUrl = getLoginUrl(request.url);
+      throw redirect(redirectUrl.toString());
+    }
+
+    const pages = await getPages();
+
+    if (!pages.valid) {
+      //TODO: Add proper error handling
+      return null;
+    }
+    return pages.pages;
   }
-
-  const pages = await getPages();
-
-  if (!pages.valid) {
-    //TODO: Add proper error handling
-    return null;
-  }
-
-  return pages.pages;
-}
+);
 
 const NewSiteFormSchema = z.object({
   url: z

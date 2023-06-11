@@ -17,12 +17,11 @@ Sentry.init({
     new Sentry.BrowserTracing({
       tracePropagationTargets: ["locahost"],
     }),
-    new Sentry.Replay(),
   ],
 
-  tracesSampleRate: 1.0,
-  replaysSessionSampleRate: 0.1,
-  replaysOnErrorSampleRate: 1,
+  tracesSampleRate: 0.0,
+  replaysSessionSampleRate: 0.0,
+  replaysOnErrorSampleRate: 0.0,
 });
 
 const START_TEST_WORKER = false;

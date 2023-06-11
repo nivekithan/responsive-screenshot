@@ -10,6 +10,19 @@ import * as rootIndexPage from "./routes/_index";
 import * as screenshotPage from "./routes/page.$pageId";
 import * as slackRedirectPage from "./routes/slack.oauth.redirect";
 
+const START_TEST_WORKER = true;
+
+async function prepareMock() {
+  if (START_TEST_WORKER) {
+    const { worker } = await import("./mocks/main");
+    return worker.start();
+  }
+
+  return Promise.resolve();
+}
+
+await prepareMock();
+
 const router = createBrowserRouter([
   {
     path: "/",

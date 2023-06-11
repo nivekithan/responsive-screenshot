@@ -11,7 +11,6 @@ import {
 import { cachified } from "cachified";
 import { cache, getUserCacheKey, invalidateUserCache } from "./cache";
 import { captureException } from "@sentry/react";
-import { Mode } from "fs";
 
 export type LoginUserRes = APIResponse<
   (typeof ErrorReasons)["incorrectEmailOrPassword"],

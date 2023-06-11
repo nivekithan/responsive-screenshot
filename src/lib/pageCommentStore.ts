@@ -103,8 +103,11 @@ function getPageIssueStoreOrInitializeIt(
   }
 
   getPageIssues({ pageId }).then((pastIssues) => {
-    pageIssueStore.setPastIssues(pastIssues);
-    onStoreChange();
+    if (pastIssues.valid) {
+      pageIssueStore.setPastIssues(pastIssues.pageIssueList);
+      onStoreChange();
+    }
+    //TODO: Add Error handling
   });
 
   return pageIssueStore;
@@ -142,9 +145,7 @@ class PageIssueStore {
       return;
     }
 
-    const filteredIssues = pastIssues.filter((v) =>
-      this.#isIssueUnique(v)
-    );
+    const filteredIssues = pastIssues.filter((v) => this.#isIssueUnique(v));
 
     this.issue = orderBy(
       filteredIssues.concat(this.issue),

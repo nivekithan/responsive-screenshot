@@ -53,9 +53,18 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
     throw redirect("/");
   }
 
+  if (!pageAccessEmails.valid) {
+    // TODO: Do Error handling
+    throw redirect("/");
+  }
+
   const isPageOwner = pageRes.page.createdBy === userRes.user.$id;
 
-  return { page: pageRes.page, pageAccessEmails, isPageOwner };
+  return {
+    page: pageRes.page,
+    pageAccessEmails: pageAccessEmails.pageEmailAccess,
+    isPageOwner,
+  };
 }
 
 export async function action({ request, params }: ActionFunctionArgs) {

@@ -65,3 +65,13 @@ export type APIResponse<
   | Data
   | { valid: false; reason: Reasons }
   | { valid: false; message: string };
+
+export function getErrorMessage(
+  error: { reason: string } | { message: string }
+) {
+  if ("reason" in error) {
+    return error.reason;
+  }
+
+  return error.message;
+}

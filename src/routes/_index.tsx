@@ -6,10 +6,9 @@ import { generateScreenshotFn } from "@/lib/appwrite";
 import { getCurrentUser } from "@/lib/auth";
 import { PageModel } from "@/lib/convert";
 import { getPages, isPageNameUnique, storePage } from "@/lib/storage";
-import { getLoginUrl } from "@/lib/utils";
+import { getErrorMessage, getLoginUrl } from "@/lib/utils";
 import { useForm } from "@conform-to/react";
 import { parse } from "@conform-to/zod";
-import { AppwriteException } from "appwrite";
 import * as React from "react";
 import {
   ActionFunctionArgs,
@@ -30,12 +29,12 @@ export async function loader({ request }: LoaderFunctionArgs) {
 
   const pages = await getPages();
 
-  if (pages instanceof AppwriteException) {
+  if (!pages.valid) {
     //TODO: Add proper error handling
     return null;
   }
 
-  return pages;
+  return pages.pages;
 }
 
 const NewSiteFormSchema = z.object({
@@ -95,11 +94,10 @@ export async function action({ request }: ActionFunctionArgs) {
     })
   );
 
-  const firstError = storePageRes.find((v) => v instanceof AppwriteException);
+  const firstError = storePageRes.find((v) => !v.valid);
 
-  if (firstError) {
-    const exception = firstError as AppwriteException;
-    submission.error.link = exception.message;
+  if (firstError && !firstError.valid) {
+    submission.error.link = getErrorMessage(firstError);
     return { submission };
   }
 

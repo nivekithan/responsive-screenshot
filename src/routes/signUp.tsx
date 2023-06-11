@@ -10,7 +10,7 @@ import { parse } from "@conform-to/zod";
 import { useForm } from "@conform-to/react";
 import { getCurrentUser, loginUser, signUpUser } from "@/lib/auth";
 import { AuthForm } from "@/components/authForm";
-import { monitorLoaderFn } from "@/lib/utils";
+import { monitorActionFn, monitorLoaderFn } from "@/lib/utils";
 
 export const loader = monitorLoaderFn(
   "signup",
@@ -34,46 +34,49 @@ const SignUpActionSchema = z.object({
     .min(8, "Password must be atleast 8 letters"),
 });
 
-export async function action({ request }: ActionFunctionArgs) {
-  const formdata = await request.formData();
-  const submission = parse(formdata, { schema: SignUpActionSchema });
+export const action = monitorActionFn(
+  "signup",
+  async ({ request }: ActionFunctionArgs) => {
+    const formdata = await request.formData();
+    const submission = parse(formdata, { schema: SignUpActionSchema });
 
-  if (!submission.value || submission.intent !== "submit") {
-    return submission;
-  }
+    if (!submission.value || submission.intent !== "submit") {
+      return submission;
+    }
 
-  const user = await signUpUser(
-    submission.value.email,
-    submission.value.password
-  );
-
-  if (user.valid) {
-    const session = await loginUser(
+    const user = await signUpUser(
       submission.value.email,
       submission.value.password
     );
 
-    if (session.valid) {
-      throw redirect("/");
+    if (user.valid) {
+      const session = await loginUser(
+        submission.value.email,
+        submission.value.password
+      );
+
+      if (session.valid) {
+        throw redirect("/");
+      }
+
+      const invalidSession = session;
+
+      submission.error.password =
+        "reason" in invalidSession
+          ? invalidSession.reason
+          : invalidSession.message;
+
+      return submission;
     }
 
-    const invalidSession = session;
+    const invalidUser = user;
 
     submission.error.password =
-      "reason" in invalidSession
-        ? invalidSession.reason
-        : invalidSession.message;
+      "reason" in invalidUser ? invalidUser.reason : invalidUser.message;
 
     return submission;
   }
-
-  const invalidUser = user;
-
-  submission.error.password =
-    "reason" in invalidUser ? invalidUser.reason : invalidUser.message;
-
-  return submission;
-}
+);
 
 function useTypedActionData() {
   const submission = useActionData();

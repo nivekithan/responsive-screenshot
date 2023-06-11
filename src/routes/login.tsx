@@ -10,7 +10,7 @@ import { parse } from "@conform-to/zod";
 import { useForm } from "@conform-to/react";
 import { getCurrentUser, loginUser } from "@/lib/auth";
 import { AuthForm } from "@/components/authForm";
-import { monitorLoaderFn } from "@/lib/utils";
+import { monitorActionFn, monitorLoaderFn } from "@/lib/utils";
 
 export const loader = monitorLoaderFn(
   "login",
@@ -34,35 +34,38 @@ const LoginActionSchema = z.object({
     .min(8, "Password must be atleast 8 letters"),
 });
 
-export async function action({ request }: ActionFunctionArgs) {
-  const redirectTo = new URL(request.url).searchParams.get("redirectTo");
-  const formdata = await request.formData();
-  const submission = parse(formdata, { schema: LoginActionSchema });
+export const action = monitorActionFn(
+  "login",
+  async ({ request }: ActionFunctionArgs) => {
+    const redirectTo = new URL(request.url).searchParams.get("redirectTo");
+    const formdata = await request.formData();
+    const submission = parse(formdata, { schema: LoginActionSchema });
 
-  if (!submission.value || submission.intent !== "submit") {
+    if (!submission.value || submission.intent !== "submit") {
+      return submission;
+    }
+
+    const session = await loginUser(
+      submission.value.email,
+      submission.value.password
+    );
+
+    if (session.valid) {
+      throw redirect(redirectTo || "/");
+    }
+
+    const invalidSession = session;
+
+    if ("reason" in invalidSession) {
+      submission.error.password = invalidSession.reason;
+      return submission;
+    }
+
+    submission.error.password = invalidSession.message;
+
     return submission;
   }
-
-  const session = await loginUser(
-    submission.value.email,
-    submission.value.password
-  );
-
-  if (session.valid) {
-    throw redirect(redirectTo || "/");
-  }
-
-  const invalidSession = session;
-
-  if ("reason" in invalidSession) {
-    submission.error.password = invalidSession.reason;
-    return submission;
-  }
-
-  submission.error.password = invalidSession.message;
-
-  return submission;
-}
+);
 
 function useTypedActionData() {
   const submission = useActionData();

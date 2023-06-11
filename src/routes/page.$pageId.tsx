@@ -16,7 +16,7 @@ import {
   updatePageUrl,
 } from "@/lib/storage";
 import { getPage } from "@/lib/storage";
-import { getLoginUrl, monitorLoaderFn } from "@/lib/utils";
+import { getLoginUrl, monitorActionFn, monitorLoaderFn } from "@/lib/utils";
 import { parse } from "@conform-to/zod";
 import { useCallback, useRef } from "react";
 import {
@@ -70,70 +70,73 @@ export const loader = monitorLoaderFn(
   }
 );
 
-export async function action({ request, params }: ActionFunctionArgs) {
-  const userRes = await getCurrentUser();
-  const parsedParams = ParamsSchema.parse(params);
+export const action = monitorActionFn(
+  "page.$pageid",
+  async ({ request, params }: ActionFunctionArgs) => {
+    const userRes = await getCurrentUser();
+    const parsedParams = ParamsSchema.parse(params);
 
-  if (!userRes.valid) {
-    const redirectUrl = getLoginUrl(request.url);
-    throw redirect(redirectUrl.toString());
-  }
+    if (!userRes.valid) {
+      const redirectUrl = getLoginUrl(request.url);
+      throw redirect(redirectUrl.toString());
+    }
 
-  const formData = await request.formData();
+    const formData = await request.formData();
 
-  const submission = parse(formData, {
-    schema: z.union([
-      addIssueSchema,
-      updateScreenshotVersionSchema,
-      resolveIssueSchema,
-    ]),
-  });
-
-  if (!submission.value || submission.intent !== "submit") {
-    return submission;
-  }
-
-  if ("issue" in submission.value) {
-    await storeIssue({
-      pageId: parsedParams.pageId,
-      issue: submission.value.issue,
-      userId: userRes.user.$id,
-      userEmail: userRes.user.email,
+    const submission = parse(formData, {
+      schema: z.union([
+        addIssueSchema,
+        updateScreenshotVersionSchema,
+        resolveIssueSchema,
+      ]),
     });
-    return submission;
-  } else if ("updateScreenshotVersion" in submission.value) {
-    const pageRes = await getPage({ id: parsedParams.pageId });
 
-    if (!pageRes.valid) {
-      // TODO: Proper error handling
+    if (!submission.value || submission.intent !== "submit") {
       return submission;
     }
 
-    const page = pageRes.page;
+    if ("issue" in submission.value) {
+      await storeIssue({
+        pageId: parsedParams.pageId,
+        issue: submission.value.issue,
+        userId: userRes.user.$id,
+        userEmail: userRes.user.email,
+      });
+      return submission;
+    } else if ("updateScreenshotVersion" in submission.value) {
+      const pageRes = await getPage({ id: parsedParams.pageId });
 
-    const screenshots = await generateScreenshotFn(
-      page.originalUrl,
-      `${new Date().getTime()}`
-    );
+      if (!pageRes.valid) {
+        // TODO: Proper error handling
+        return submission;
+      }
 
-    const currentPageScreenshot = screenshots.find(
-      (v) => v.name === page.screenName
-    );
+      const page = pageRes.page;
 
-    if (!currentPageScreenshot) {
-      throw new Error("unreachable");
+      const screenshots = await generateScreenshotFn(
+        page.originalUrl,
+        `${new Date().getTime()}`
+      );
+
+      const currentPageScreenshot = screenshots.find(
+        (v) => v.name === page.screenName
+      );
+
+      if (!currentPageScreenshot) {
+        throw new Error("unreachable");
+      }
+
+      await updatePageUrl({ pageId: page.id, url: currentPageScreenshot?.url });
+
+      return submission;
+    } else if ("resolveIssue" in submission.value) {
+      const resolveIssueId = submission.value.resolveIssue;
+      await deleteIssue({ issueId: resolveIssueId });
+
+      return submission;
     }
-
-    await updatePageUrl({ pageId: page.id, url: currentPageScreenshot?.url });
-
-    return submission;
-  } else if ("resolveIssue" in submission.value) {
-    const resolveIssueId = submission.value.resolveIssue;
-    await deleteIssue({ issueId: resolveIssueId });
-
-    return submission;
   }
-}
+);
 
 function useTypedLoader() {
   const loaderData = useLoaderData();

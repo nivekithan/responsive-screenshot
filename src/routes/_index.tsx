@@ -6,7 +6,12 @@ import { generateScreenshotFn } from "@/lib/appwrite";
 import { getCurrentUser } from "@/lib/auth";
 import { PageModel } from "@/lib/convert";
 import { getPages, isPageNameUnique, storePage } from "@/lib/storage";
-import { getErrorMessage, getLoginUrl, monitorLoaderFn } from "@/lib/utils";
+import {
+  getErrorMessage,
+  getLoginUrl,
+  monitorActionFn,
+  monitorLoaderFn,
+} from "@/lib/utils";
 import { useForm } from "@conform-to/react";
 import { parse } from "@conform-to/zod";
 import * as React from "react";
@@ -50,61 +55,64 @@ const NewSiteFormSchema = z.object({
     .max(250, "Maximum length of name can be only 250"),
 });
 
-export async function action({ request }: ActionFunctionArgs) {
-  const userRes = await getCurrentUser();
+export const action = monitorActionFn(
+  "root_index",
+  async ({ request }: ActionFunctionArgs) => {
+    const userRes = await getCurrentUser();
 
-  if (!userRes.valid) {
-    const redirectUrl = getLoginUrl(request.url);
-    throw redirect(redirectUrl.toString());
+    if (!userRes.valid) {
+      const redirectUrl = getLoginUrl(request.url);
+      throw redirect(redirectUrl.toString());
+    }
+    const user = userRes.user;
+
+    const formdata = await request.formData();
+    const submission = parse(formdata, { schema: NewSiteFormSchema });
+
+    if (!submission.value || submission.intent !== "submit") {
+      return { submission };
+    }
+
+    const url = submission.value.url;
+    const name = submission.value.name;
+
+    const isNameUnique = await isPageNameUnique(name);
+
+    if (!isNameUnique) {
+      submission.error.name =
+        "Name should be unique. Please Provide another name";
+      return { submission };
+    }
+
+    const screenshotUrls = await generateScreenshotFn(
+      url,
+      `${new Date().getTime()}`
+    );
+
+    const storePageRes = await Promise.all(
+      screenshotUrls.map((screenshots) => {
+        return storePage({
+          name,
+          url: screenshots.url,
+          originalUrl: url,
+          userId: user.$id,
+          height: screenshots.height,
+          screenName: screenshots.name,
+          width: screenshots.width,
+        });
+      })
+    );
+
+    const firstError = storePageRes.find((v) => !v.valid);
+
+    if (firstError && !firstError.valid) {
+      submission.error.link = getErrorMessage(firstError);
+      return { submission };
+    }
+
+    return { data: screenshotUrls, submission };
   }
-  const user = userRes.user;
-
-  const formdata = await request.formData();
-  const submission = parse(formdata, { schema: NewSiteFormSchema });
-
-  if (!submission.value || submission.intent !== "submit") {
-    return { submission };
-  }
-
-  const url = submission.value.url;
-  const name = submission.value.name;
-
-  const isNameUnique = await isPageNameUnique(name);
-
-  if (!isNameUnique) {
-    submission.error.name =
-      "Name should be unique. Please Provide another name";
-    return { submission };
-  }
-
-  const screenshotUrls = await generateScreenshotFn(
-    url,
-    `${new Date().getTime()}`
-  );
-
-  const storePageRes = await Promise.all(
-    screenshotUrls.map((screenshots) => {
-      return storePage({
-        name,
-        url: screenshots.url,
-        originalUrl: url,
-        userId: user.$id,
-        height: screenshots.height,
-        screenName: screenshots.name,
-        width: screenshots.width,
-      });
-    })
-  );
-
-  const firstError = storePageRes.find((v) => !v.valid);
-
-  if (firstError && !firstError.valid) {
-    submission.error.link = getErrorMessage(firstError);
-    return { submission };
-  }
-
-  return { data: screenshotUrls, submission };
-}
+);
 
 function useTypedLoaderData() {
   const loaderData = useLoaderData();

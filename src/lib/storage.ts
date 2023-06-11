@@ -8,11 +8,15 @@ import {
 } from "appwrite";
 import { avatars, databases, secureGetPage } from "./appwrite";
 import {
+  APIResponse,
   ErrorReasons,
   ONE_MONTH_IN_MS,
   isDocumentNotFoundException,
+  isUserNotAuthorizedException,
 } from "./utils";
 import {
+  IssueModel,
+  PageAccessEmailModel,
   PageModel,
   convertPageAccessEmailModel,
   convertPageIssueModel,
@@ -27,9 +31,11 @@ import {
   getSinglePageCacheKey,
   getSinglePageNameCacheKey,
   invalidatePagesCache,
+  invalidateSinglePageAccessCacheKey,
   invalidateSinglePageCache,
   invalidateSinglePageNameKey,
 } from "./cache";
+import { captureException } from "@sentry/react";
 
 export const DATABASE_ID = "dev";
 export const collections = {
@@ -39,7 +45,12 @@ export const collections = {
   USER_WEBHOOK_URL: "648046bd24a66d4b1503",
 };
 
-async function getPagesImpl() {
+export type GetPagesRes = APIResponse<
+  typeof ErrorReasons.userNotAuthorized,
+  { valid: true; pages: Array<PageModel> }
+>;
+
+async function getPagesImpl(): Promise<GetPagesRes> {
   const pages = await databases
     .listDocuments(DATABASE_ID, collections.PAGES, [
       Query.limit(100),
@@ -47,10 +58,19 @@ async function getPagesImpl() {
     ])
     .catch((err: AppwriteException) => err);
 
-  if (pages instanceof AppwriteException) {
-    return pages;
+  if (
+    pages instanceof AppwriteException &&
+    isUserNotAuthorizedException(pages)
+  ) {
+    return { valid: false, reason: ErrorReasons.userNotAuthorized };
   }
-  return pages.documents.map(convertPageModel);
+
+  if (pages instanceof AppwriteException) {
+    captureException(pages);
+    return { valid: false, message: pages.message };
+  }
+
+  return { valid: true, pages: pages.documents.map(convertPageModel) };
 }
 
 export async function getPages() {
@@ -63,7 +83,7 @@ export async function getPages() {
     ttl: ONE_MONTH_IN_MS,
   });
 
-  if (pagesRes instanceof AppwriteException) {
+  if (!pagesRes.valid) {
     invalidatePagesCache();
   }
 
@@ -88,7 +108,7 @@ async function getPageFromAppwrite(id: string) {
 
   if (value instanceof AppwriteException) {
     invalidateSinglePageCache(id);
-    throw value;
+    return value;
   }
 
   return value;
@@ -98,13 +118,10 @@ export type GetPageProps = {
   id: string;
 };
 
-export type GetPageRes =
-  | {
-      valid: true;
-      page: PageModel;
-    }
-  | { valid: false; reason: (typeof ErrorReasons)["pageNotFound"] }
-  | { valid: false; message: string };
+export type GetPageRes = APIResponse<
+  typeof ErrorReasons.pageNotFound,
+  { valid: true; page: PageModel }
+>;
 
 export async function getPage({ id }: GetPageProps): Promise<GetPageRes> {
   const page = await getPageFromAppwrite(id).catch((err: AppwriteException) => {
@@ -122,6 +139,7 @@ export async function getPage({ id }: GetPageProps): Promise<GetPageRes> {
   }
 
   if (page instanceof AppwriteException) {
+    captureException(page);
     return { valid: false, message: page.message };
   }
 
@@ -141,6 +159,11 @@ export type StorePageProps = {
   height: number;
 };
 
+export type StorePageRes = APIResponse<
+  typeof ErrorReasons.userNotAuthorized,
+  { valid: true; page: PageModel }
+>;
+
 export async function storePage({
   name,
   url,
@@ -149,7 +172,7 @@ export async function storePage({
   height,
   screenName,
   width,
-}: StorePageProps) {
+}: StorePageProps): Promise<StorePageRes> {
   const insertedPage = await pRetry(
     () => {
       return databases.createDocument(
@@ -178,7 +201,19 @@ export async function storePage({
   invalidatePagesCache();
   invalidateSinglePageNameKey(name);
 
-  return insertedPage;
+  if (
+    insertedPage instanceof AppwriteException &&
+    isUserNotAuthorizedException(insertedPage)
+  ) {
+    return { valid: false, reason: ErrorReasons.userNotAuthorized };
+  }
+
+  if (insertedPage instanceof AppwriteException) {
+    captureException(insertedPage);
+    return { valid: false, message: insertedPage.message };
+  }
+
+  return { valid: true, page: convertPageModel(insertedPage) };
 }
 
 export type UpdatePageUrlArgs = {
@@ -186,27 +221,61 @@ export type UpdatePageUrlArgs = {
   pageId: string;
 };
 
-export async function updatePageUrl({ url, pageId }: UpdatePageUrlArgs) {
-  const updatedPage = await databases.updateDocument(
-    DATABASE_ID,
-    collections.PAGES,
-    pageId,
-    { url }
-  );
+export type UpdatePageUrlRes = APIResponse<
+  typeof ErrorReasons.userNotAuthorized,
+  { valid: true; page: PageModel }
+>;
+
+export async function updatePageUrl({
+  url,
+  pageId,
+}: UpdatePageUrlArgs): Promise<UpdatePageUrlRes> {
+  const updatedPage = await databases
+    .updateDocument(DATABASE_ID, collections.PAGES, pageId, { url })
+    .catch((err: AppwriteException) => err);
 
   invalidateSinglePageCache(pageId);
 
-  return updatedPage;
+  if (
+    updatedPage instanceof AppwriteException &&
+    isUserNotAuthorizedException(updatedPage)
+  ) {
+    return { valid: false, reason: ErrorReasons.userNotAuthorized };
+  }
+
+  if (updatedPage instanceof AppwriteException) {
+    captureException(updatedPage);
+    return { valid: false, message: updatedPage.message };
+  }
+
+  return { valid: true, page: convertPageModel(updatedPage) };
 }
 
-async function isPageNameUniqueImpl(name: string) {
-  const docList = await databases.listDocuments(
-    DATABASE_ID,
-    collections.PAGES,
-    [Query.equal("name", name)]
-  );
+export type IsPageNameUniqueRes = APIResponse<
+  typeof ErrorReasons.userNotAuthorized,
+  { valid: true; isUnique: boolean }
+>;
 
-  return docList.total === 0;
+async function isPageNameUniqueImpl(
+  name: string
+): Promise<IsPageNameUniqueRes> {
+  const docList = await databases
+    .listDocuments(DATABASE_ID, collections.PAGES, [Query.equal("name", name)])
+    .catch((err: AppwriteException) => err);
+
+  if (
+    docList instanceof AppwriteException &&
+    isUserNotAuthorizedException(docList)
+  ) {
+    return { valid: false, reason: ErrorReasons.userNotAuthorized };
+  }
+
+  if (docList instanceof AppwriteException) {
+    captureException(docList);
+    return { valid: false, message: docList.message };
+  }
+
+  return { valid: true, isUnique: docList.total === 0 };
 }
 
 export async function isPageNameUnique(name: string) {
@@ -220,6 +289,10 @@ export async function isPageNameUnique(name: string) {
     },
   });
 
+  if (!isUnique.valid) {
+    invalidateSinglePageNameKey(name);
+  }
+
   return isUnique;
 }
 
@@ -230,12 +303,17 @@ export type StoreIssueArgs = {
   userEmail: string;
 };
 
+export type StoreIssueRes = APIResponse<
+  typeof ErrorReasons.userNotAuthorized,
+  { valid: true; pageIssue: IssueModel }
+>;
+
 export async function storeIssue({
   issue,
   pageId,
   userId,
   userEmail,
-}: StoreIssueArgs) {
+}: StoreIssueArgs): Promise<StoreIssueRes> {
   const insertedDocument = await databases
     .createDocument(
       DATABASE_ID,
@@ -251,63 +329,125 @@ export async function storeIssue({
     )
     .catch((err: AppwriteException) => err);
 
-  if (insertedDocument instanceof AppwriteException) {
-    return insertedDocument;
+  if (
+    insertedDocument instanceof AppwriteException &&
+    isUserNotAuthorizedException(insertedDocument)
+  ) {
+    return { valid: false, reason: ErrorReasons.userNotAuthorized };
   }
 
-  return convertPageIssueModel(insertedDocument);
+  if (insertedDocument instanceof AppwriteException) {
+    captureException(insertedDocument);
+    return { valid: false, message: insertedDocument.message };
+  }
+
+  return { valid: true, pageIssue: convertPageIssueModel(insertedDocument) };
 }
 
 export type GetPageIssueArgs = {
   pageId: string;
 };
 
-export async function getPageIssues({ pageId }: GetPageIssueArgs) {
-  const pageIssueList = await databases.listDocuments(
-    DATABASE_ID,
-    collections.PAGE_ISSUES,
-    [
+export type GetPageIssuesRes = APIResponse<
+  typeof ErrorReasons.userNotAuthorized,
+  { valid: true; pageIssueList: Array<IssueModel> }
+>;
+
+export async function getPageIssues({
+  pageId,
+}: GetPageIssueArgs): Promise<GetPageIssuesRes> {
+  const pageIssueList = await databases
+    .listDocuments(DATABASE_ID, collections.PAGE_ISSUES, [
       Query.equal("pageId", pageId),
       Query.orderDesc("$createdAt"),
       Query.limit(50),
-    ]
-  );
+    ])
+    .catch((err: AppwriteException) => err);
+
+  if (
+    pageIssueList instanceof AppwriteException &&
+    isUserNotAuthorizedException(pageIssueList)
+  ) {
+    return { valid: false, reason: ErrorReasons.userNotAuthorized };
+  }
+
+  if (pageIssueList instanceof AppwriteException) {
+    captureException(pageIssueList);
+    return { valid: false, message: pageIssueList.message };
+  }
 
   const issueModelList = pageIssueList.documents
     .map(convertPageIssueModel)
     .reverse();
 
-  return issueModelList;
+  return { valid: true, pageIssueList: issueModelList };
 }
 
 export type DeleteIssueArgs = {
   issueId: string;
 };
 
-export async function deleteIssue({ issueId }: DeleteIssueArgs) {
-  const deletedDoc = await databases.deleteDocument(
-    DATABASE_ID,
-    collections.PAGE_ISSUES,
-    issueId
-  );
+export type DeleteIssueRes = APIResponse<
+  typeof ErrorReasons.userNotAuthorized,
+  { valid: true }
+>;
 
-  return deletedDoc;
+export async function deleteIssue({
+  issueId,
+}: DeleteIssueArgs): Promise<DeleteIssueRes> {
+  const deletedDoc = await databases
+    .deleteDocument(DATABASE_ID, collections.PAGE_ISSUES, issueId)
+    .catch((err: AppwriteException) => err);
+
+  if (
+    deletedDoc instanceof AppwriteException &&
+    isUserNotAuthorizedException(deletedDoc)
+  ) {
+    return { valid: false, reason: ErrorReasons.userNotAuthorized };
+  }
+
+  if (deletedDoc instanceof AppwriteException) {
+    captureException(deletedDoc);
+    return { valid: false, message: deletedDoc.message };
+  }
+
+  return { valid: true };
 }
 
-async function getPageAccessEmailsImpl(pageId: string) {
-  const documents = await databases.listDocuments(
-    DATABASE_ID,
-    collections.PAGE_ACCESS_EMAILS,
-    [Query.equal("pageId", pageId)]
-  );
+export type GetPageAccessEmailsRes = APIResponse<
+  typeof ErrorReasons.userNotAuthorized,
+  { valid: true; pageEmailAccess: PageAccessEmailModel | undefined }
+>;
 
-  return documents.documents.map(convertPageAccessEmailModel)[0] as
-    | ReturnType<typeof convertPageAccessEmailModel>
-    | undefined;
+async function getPageAccessEmailsImpl(
+  pageId: string
+): Promise<GetPageAccessEmailsRes> {
+  const documents = await databases
+    .listDocuments(DATABASE_ID, collections.PAGE_ACCESS_EMAILS, [
+      Query.equal("pageId", pageId),
+    ])
+    .catch((err: AppwriteException) => err);
+
+  if (
+    documents instanceof AppwriteException &&
+    isUserNotAuthorizedException(documents)
+  ) {
+    return { valid: false, reason: ErrorReasons.userNotAuthorized };
+  }
+
+  if (documents instanceof AppwriteException) {
+    captureException(documents);
+    return { valid: false, message: documents.message };
+  }
+
+  return {
+    valid: true,
+    pageEmailAccess: documents.documents.map(convertPageAccessEmailModel)[0],
+  };
 }
 
 export async function getPageAccessEmails(pageId: string) {
-  const value = cachified({
+  const value = await cachified({
     cache,
     ttl: ONE_MONTH_IN_MS,
     key: getSinglePageAccessCacheKey(pageId),
@@ -316,53 +456,117 @@ export async function getPageAccessEmails(pageId: string) {
     },
   });
 
+  if (!value.valid) {
+    invalidateSinglePageAccessCacheKey(pageId);
+  }
+
   return value;
 }
+
+export type CreatePageAccessEmailRes = APIResponse<
+  typeof ErrorReasons.userNotAuthorized,
+  { valid: true; pageEmailAccess: PageAccessEmailModel }
+>;
 
 export async function createPageAccessEmails(
   pageId: string,
   emailList: Set<string>
-) {
+): Promise<CreatePageAccessEmailRes> {
   const emailListArr = new Array(...emailList);
 
-  const createdDoc = await databases.createDocument(
-    DATABASE_ID,
-    collections.PAGE_ACCESS_EMAILS,
-    ID.unique(),
-    { pageId, emails: emailListArr }
-  );
+  const createdDoc = await databases
+    .createDocument(DATABASE_ID, collections.PAGE_ACCESS_EMAILS, ID.unique(), {
+      pageId,
+      emails: emailListArr,
+    })
+    .catch((err: AppwriteException) => err);
 
-  return convertPageAccessEmailModel(createdDoc);
+  if (
+    createdDoc instanceof AppwriteException &&
+    isUserNotAuthorizedException(createdDoc)
+  ) {
+    return { valid: false, reason: ErrorReasons.userNotAuthorized };
+  }
+
+  if (createdDoc instanceof AppwriteException) {
+    captureException(createdDoc);
+    return { valid: false, message: createdDoc.message };
+  }
+
+  return {
+    valid: true,
+    pageEmailAccess: convertPageAccessEmailModel(createdDoc),
+  };
 }
+
+export type UpdatePageEmailAccessEmailsRes = APIResponse<
+  typeof ErrorReasons.userNotAuthorized,
+  { valid: true; pageEmailAccess: PageAccessEmailModel }
+>;
 
 export async function updatePageAccessEmails(
   pageAccessEmailDocId: string,
   emailList: Set<string>
-) {
+): Promise<UpdatePageEmailAccessEmailsRes> {
   const emailListArr = new Array(...emailList);
 
-  const createdDoc = await databases.updateDocument(
-    DATABASE_ID,
-    collections.PAGE_ACCESS_EMAILS,
-    pageAccessEmailDocId,
-    { emails: emailListArr }
-  );
+  const updatedDoc = await databases
+    .updateDocument(
+      DATABASE_ID,
+      collections.PAGE_ACCESS_EMAILS,
+      pageAccessEmailDocId,
+      { emails: emailListArr }
+    )
+    .catch((err: AppwriteException) => err);
 
-  return convertPageAccessEmailModel(createdDoc);
+  if (
+    updatedDoc instanceof AppwriteException &&
+    isUserNotAuthorizedException(updatedDoc)
+  ) {
+    return { valid: false, reason: ErrorReasons.userNotAuthorized };
+  }
+
+  if (updatedDoc instanceof AppwriteException) {
+    return { valid: false, message: updatedDoc.message };
+  }
+
+  return {
+    valid: true,
+    pageEmailAccess: convertPageAccessEmailModel(updatedDoc),
+  };
 }
 
 export type IsSlackAppInstalledArgs = {
   userId: string;
 };
 
-export async function isSlackAppInstalled({ userId }: IsSlackAppInstalledArgs) {
-  const docList = await databases.listDocuments(
-    DATABASE_ID,
-    collections.USER_WEBHOOK_URL,
-    [Query.equal("userId", userId)]
-  );
+export type IsSlackAppInstalledRes = APIResponse<
+  typeof ErrorReasons.userNotAuthorized,
+  { valid: true; isSlackAppInstalled: boolean }
+>;
 
-  return docList.total !== 0;
+export async function isSlackAppInstalled({
+  userId,
+}: IsSlackAppInstalledArgs): Promise<IsSlackAppInstalledRes> {
+  const docList = await databases
+    .listDocuments(DATABASE_ID, collections.USER_WEBHOOK_URL, [
+      Query.equal("userId", userId),
+    ])
+    .catch((err: AppwriteException) => err);
+
+  if (
+    docList instanceof AppwriteException &&
+    isUserNotAuthorizedException(docList)
+  ) {
+    return { valid: false, reason: ErrorReasons.userNotAuthorized };
+  }
+
+  if (docList instanceof AppwriteException) {
+    captureException(docList);
+    return { valid: false, message: docList.message };
+  }
+
+  return { valid: true, isSlackAppInstalled: docList.total !== 0 };
 }
 
 export type GetAvatarForUserArgs = {

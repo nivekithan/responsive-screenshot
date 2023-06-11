@@ -26,11 +26,18 @@ export function isDocumentNotFoundException(exception: AppwriteException) {
   return exception.type === expectedType;
 }
 
+export function isUserNotAuthorizedException(exception: AppwriteException) {
+  const expectedType = "general_unauthorized_scope";
+
+  return exception.type === expectedType;
+}
+
 export const ErrorReasons = {
   incorrectEmailOrPassword: "Email or password is incorrect",
   emailAlreadyExists:
     "There is already a user with the same email. Please choose another one",
   pageNotFound: "There is no page with that id",
+  userNotAuthorized: "You are not authorized to perform this action",
 } as const;
 
 export function getLoginUrl(currentUrl: string) {
@@ -50,3 +57,11 @@ export function getSignUpUrl(currentUrl: string) {
 }
 
 export const ONE_MONTH_IN_MS = 1000 * 60 * 60 * 24 * 7 * 30;
+
+export type APIResponse<
+  Reasons extends (typeof ErrorReasons)[keyof typeof ErrorReasons],
+  Data extends { valid: true }
+> =
+  | Data
+  | { valid: false; reason: Reasons }
+  | { valid: false; message: string };

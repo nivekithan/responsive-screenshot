@@ -20,6 +20,7 @@ export function getUserCacheKey() {
 }
 
 export function invalidateUserCache() {
+  console.log("Invalidating user cache");
   userCacheKey = `${new Date().getTime()}`;
 }
 
@@ -33,6 +34,7 @@ export function getPagesCacheKey() {
 }
 
 export function invalidatePagesCache() {
+  console.log("Invalidating pages cache");
   pagesCacheKey = `${new Date().getTime()}`;
 }
 
@@ -55,6 +57,7 @@ export function getSinglePageCacheKey(pageId: string) {
 }
 
 export function invalidateSinglePageCache(pageId: string) {
+  console.log(`Invalidating singlePage: ${pageId} cache`);
   globalSinglePagesCacheKey.set(pageId, `${new Date().getTime()}`);
 }
 
@@ -77,6 +80,7 @@ export function getSinglePageNameCacheKey(nameOfPage: string) {
 }
 
 export function invalidateSinglePageNameKey(nameOfPage: string) {
+  console.log(`Invalidating singlePageName: ${nameOfPage} cache`);
   globalPageNameKey.set(nameOfPage, `${new Date().getTime()}`);
 }
 
@@ -99,5 +103,6 @@ export function getSinglePageAccessCacheKey(pageId: string) {
 }
 
 export function invalidateSinglePageAccessCacheKey(pageId: string) {
+  console.log(`Invalidating singlePageAccess: ${pageId} cache`);
   globalPageAccessEmailsKey.set(pageId, `${new Date().getTime()}`);
 }

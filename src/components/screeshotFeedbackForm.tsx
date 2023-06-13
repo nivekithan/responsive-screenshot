@@ -40,7 +40,8 @@ export function ScreenshotFeedbackForm() {
         ref={(e) => {
           issueFormRef.current = e;
 
-          // @ts-ignore
+          // @ts-expect-error conform for some reason does not support 
+          // manually setting ref
           addIssueFormProps.ref.current = e;
         }}
       >

@@ -21,6 +21,8 @@ jobs:
             - recursive: false
               args: [--frozen-lockfile, --strict-peer-dependencies]
           
+      - name: ESLint files
+        run: pnpm run lint
 
       - name: Build project
         env:

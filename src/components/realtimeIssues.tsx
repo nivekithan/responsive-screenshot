@@ -22,7 +22,7 @@ export function RealTimeIssue({ pageId, scrollToBottom }: RealTimeIssueProps) {
 
   useEffect(() => {
     scrollToBottom();
-  }, [pageIssues]);
+  }, [pageIssues, scrollToBottom]);
 
   return (
     <div className="flex flex-col gap-y-3">

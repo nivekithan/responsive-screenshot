@@ -4,6 +4,7 @@ import { z } from "zod";
 import { ShareScreenShotLinkDialog } from "./shareScreenShotLinkDialog";
 import { PageAccessEmailModel, PageModel } from "@/lib/convert";
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const updateScreenshotVersionSchema = z.object({
   updateScreenshotVersion: z.literal("true"),
 });

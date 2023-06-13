@@ -19,7 +19,7 @@ jobs:
           version: 8.6.0
           run_install: |
             - recursive: false
-              args: [--forzen-lockfile, --strict-peer-dependencies]
+              args: [--frozen-lockfile, --strict-peer-dependencies]
           
 
       - name: Build project

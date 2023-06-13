@@ -1,9 +1,9 @@
-import { defineConfig } from "vite";
+import { defineConfig, loadEnv } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import { sentryVitePlugin } from "@sentry/vite-plugin";
-import { SENTRY_AUTH_TOKEN } from "./env";
 
+const env = loadEnv("", process.cwd(), "");
 // https://vitejs.dev/config/
 export default defineConfig({
   build: {
@@ -14,7 +14,7 @@ export default defineConfig({
     sentryVitePlugin({
       org: "niveth-personal",
       project: "javascript-react",
-      authToken: SENTRY_AUTH_TOKEN,
+      authToken: env.SENTRY_AUTH_TOKEN,
     }),
   ],
   resolve: {

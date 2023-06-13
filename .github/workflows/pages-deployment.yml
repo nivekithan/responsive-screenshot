@@ -14,12 +14,15 @@ jobs:
         uses: actions/setup-node@v3
 
       - name: Install dependencies
-        uses: bahmutov/npm-install@v1
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8.6.0
+          run_install: true
 
       - name: Build project
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
-        run: npm run build
+        run: pnpm run build
 
       - name: Publish to cloudflare pages
         uses: cloudflare/pages-action@1

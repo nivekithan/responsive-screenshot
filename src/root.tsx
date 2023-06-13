@@ -26,7 +26,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
   return {
     isSlackAppInstalled: hasSlackAppInstalled,
     userEmail: userRes.user.email,
-    avatarUrl: getAvatarForUser({ user: userRes.user }),
+    avatarUrl: getAvatarForUser({ email: userRes.user.email }),
   };
 }
 

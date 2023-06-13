@@ -570,10 +570,11 @@ export async function isSlackAppInstalled({
 }
 
 export type GetAvatarForUserArgs = {
-  user: Models.User<Models.Preferences>;
+  email: string;
 };
-export function getAvatarForUser({ user }: GetAvatarForUserArgs) {
-  const url = avatars.getInitials(user.email, 60, 60);
+
+export function getAvatarForUser({ email }: GetAvatarForUserArgs) {
+  const url = avatars.getInitials(email, 60, 60);
 
   return url.toString();
 }

@@ -158,7 +158,7 @@ export function ScreenshotPage() {
 
   return (
     <main className="flex bg-background">
-      <div className="grid place-items-center max-h-screen-minus-nav overflow-y-auto flex-grow px-10 bg-gray-300 bg-opacity-20 ">
+      <div className="grid place-items-center max-h-screen-minus-nav overflow-y-auto flex-grow px-10 bg-gray-300 bg-opacity-20">
         <img
           alt={`${page.name} of ${page.url}`}
           src={page.url}

@@ -9,7 +9,7 @@
     "lint": "eslint src --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
     "test": "pnpm exec playwright test",
-    "deploy" : "CLOUDFLARE_ACCOUNT_ID=1f4fab15534b33d32411794c9e05555f npx wrangler pages publish ./dist --project-name='responsive-screenshots' --no-bundle=true --commit-dirty=true"
+    "deploy": "CLOUDFLARE_ACCOUNT_ID=1f4fab15534b33d32411794c9e05555f npx wrangler pages publish ./dist --project-name='responsive-screenshots' --no-bundle=true --commit-dirty=true"
   },
   "dependencies": {
     "@conform-to/react": "^0.6.3",

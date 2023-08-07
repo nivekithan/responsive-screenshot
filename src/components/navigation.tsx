@@ -15,6 +15,7 @@ export function Navigation({
   userEmail,
   avatarUrl,
 }: NavigationProps) {
+  console.log({ showSlackInstallButton });
   return (
     <div>
       <nav className="flex justify-between px-6 py-3 items-center">

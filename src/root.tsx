@@ -23,8 +23,12 @@ export async function loader({ request }: LoaderFunctionArgs) {
     userId: userRes.user.$id,
   });
 
+  console.log({ loaderHasSlackAppInstalled: hasSlackAppInstalled });
+
   return {
-    isSlackAppInstalled: hasSlackAppInstalled,
+    isSlackAppInstalled: hasSlackAppInstalled.valid
+      ? hasSlackAppInstalled.isSlackAppInstalled
+      : false,
     userEmail: userRes.user.email,
     avatarUrl: getAvatarForUser({ email: userRes.user.email }),
   };
@@ -38,6 +42,7 @@ function useTypedLoaderData() {
 
 export function RouteLayout() {
   const { isSlackAppInstalled, userEmail, avatarUrl } = useTypedLoaderData();
+  console.log({ isSlackAppInstalled });
   return (
     <>
       <div>
